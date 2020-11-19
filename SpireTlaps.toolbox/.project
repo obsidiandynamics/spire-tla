@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>SpireTlaps</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>toolbox.builder.TLAParserBuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>toolbox.natures.TLANature</nature>
+	</natures>
+	<linkedResources>
+		<link>
+			<name>Spire.tla</name>
+			<type>1</type>
+			<location>/Users/emikou/code/spire-tla/Spire.tla</location>
+		</link>
+		<link>
+			<name>SpireTlaps.tla</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/SpireTlaps.tla</locationURI>
+		</link>
+	</linkedResources>
+</projectDescription>

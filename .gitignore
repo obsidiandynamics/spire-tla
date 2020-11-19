@@ -1,0 +1,12 @@
+*.dot
+*.out
+*.dvi
+*.pdf
+*.tex
+*.old
+*.aux
+*.log
+states/
+*SnapShot*
+.DS_Store
+*fingerprints*
