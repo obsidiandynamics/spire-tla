@@ -11,6 +11,11 @@ if [ $? -eq 1 ]; then
   exit 1
 fi
 
+if [ "$TOOLS_PATH" == "" ]; then
+  echo "TOOLS_PATH not set"
+  exit 1
+fi
+
 module=$1
 
 # To get a list of command line options, run `java -cp  $tools_path tla2tex.TLA -info`

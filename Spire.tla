@@ -17,7 +17,7 @@ ASSUME QuorumAssumption ==
     /\  Quorums \subseteq SUBSET Consenters
     /\  \A Q1, Q2 \in Quorums : Q1 \intersect Q2 # {}  
 
-Rounds == Nat           \* override with finite set when model checking
+Rounds == Nat           \* override with a finite set when model checking
 
 VARIABLES msgs,         \* `msgs' comprises the history of all messages sent by proposers and consenters
           lastRound,    \* `lastRound[c]' is the last round accepted by a consenter
@@ -169,12 +169,14 @@ Offer ==
                     ELSE IF AllIdenticalValues(A) THEN
                         LET nextRound == PickRound(A) + 1
                         IN  /\  nextRound \in Rounds
-                            /\  TrySend([type |-> "Offer", val |-> PickValue(A), round |-> nextRound, primed |-> TRUE])
+                            /\  TrySend([type |-> "Offer", val |-> PickValue(A), 
+                                         round |-> nextRound, primed |-> TRUE])
                     ELSE 
                         LET nextRound == PickRound(A) + 1
                         IN  /\  nextRound \in Rounds
                             /\  \E v \in SuccessorValues(A) :
-                                    TrySend([type |-> "Offer", val |-> v, round |-> nextRound, primed |-> FALSE])
+                                    TrySend([type |-> "Offer", val |-> v, 
+                                             round |-> nextRound, primed |-> FALSE])
                 ELSE
                     \E v \in SuccessorValues(A) :
                         TrySend([type |-> "Offer", val |-> v, round |-> MaxLastRound(A), primed |-> FALSE])
@@ -198,7 +200,8 @@ Answer(c) ==
         /\  lastRound' = [lastRound EXCEPT ![c] = m.round]
         /\  lastVal' = [lastVal EXCEPT ![c] = m.val]
         /\  lastPrimed' = [lastPrimed EXCEPT ![c] = m.primed]
-        /\  Send([type |-> "Answer", cons |-> c, lastVal |-> m.val, lastRound |-> m.round, lastPrimed |-> m.primed])
+        /\  Send([type |-> "Answer", cons |-> c, lastVal |-> m.val, 
+                  lastRound |-> m.round, lastPrimed |-> m.primed])
 
 (*****************************************************************************)
 (* A special 'marker' state that signifies that a value has been chosen.     *)
@@ -207,8 +210,8 @@ Answer(c) ==
 (*                                                                           *)
 (* This pseudo-action has no bearing on the operation of the algorithm; it   *)
 (* has been added to conveniently highlight that consensus has been reached  *)
-(* when model checking. This action does not change any variables and        *)
-(* removing it has no adverse effect.                                        *)
+(* when model checking safety and liveness properties. This action does not  *)
+(* change any variables and removing it has no adverse effect.               *)
 (*****************************************************************************)
 Decided ==
     /\  \E Q \in Quorums : \E A \in QuorumAnswers(Q) : AllIdenticalRounds(A) /\ AllPrimed(A)
@@ -230,7 +233,6 @@ Terminated ==
             \/  \E c \in Consenters : ENABLED Answer(c)
             \/  ENABLED Decided
     /\  UNCHANGED vars
-
 
 (*****************************************************************************)
 (* The canonical combined next-state action.                                 *)
@@ -293,13 +295,17 @@ MsgInv ==
                 \* be unprimed.
                 /\  m.round = 0 => ~m.primed
                 /\  m.round # 0 =>
+                        \* Round 1+ offers must ensure that only a value that has been
+                        \* voted for in round `r' may be offered in `r + 1'. We call
+                        \* this property 'value propagation'.
                         /\ m.primed =>
                             \* A round 1+ offer may be primed only if it comes
                             \* as a result of a uniform quorum-answer in the
                             \* preceding round. I.e. all consenters in some
                             \* quorum have voted for the same value in the
                             \* same round, and that round immediately precedes
-                            \* this offer.
+                            \* this offer. This directly implies value propagation
+                            \* for primed offers.
                             \E Q \in Quorums : \E A \in QuorumAnswers(Q) :
                                 /\  AllIdenticalRounds(A) /\ AllIdenticalValues(A)
                                 /\  m.val = PickValue(A)
@@ -308,11 +314,38 @@ MsgInv ==
                             \* A round 1+ offer may be unprimed only if there exists
                             \* quorum-answer in the preceding round bearing a value
                             \* that has been offered.
+                            \*
+                            \* The `Offer' next-state permission permits an unprimed
+                            \* offer to originate from a current-round answer, if the
+                            \* quorum-answer chosen by a proposer spans multiple rounds.
+                            \* This may initially appear to be more relaxed than the
+                            \* inductive invariant. We could have commensurately 
+                            \* relaxed the inductive invariant, which would then require
+                            \* us to prove that it satisfies value propagation in those
+                            \* cases where the offer relates to the current-round answer.
+                            \* 
+                            \* Rather, we assert that any current-round answer must 
+                            \* have directly or indirectly originated
+                            \* from the immediately preceding round. By strengthening
+                            \* the inductive invariant, we avoid having to prove the
+                            \* value propagation property using finite set induction. Instead,
+                            \* the subsequent proof demonstrates that all offers satisfy the
+                            \* stronger inductive invariant property, while the 
+                            \* strengthened inductive invariant satisfies
+                            \* value propagation without resorting to finite set induction.
+                            \*
+                            \* As a result, the proof of the `Inv => Consistency' lemma
+                            \* is significantly simplified at the expense of the 
+                            \* `Inv /\ Next => Inv'' lemma proof, which becomes marginally more
+                            \* involved for the mixed-round case of the `Offer' next-state
+                            \* relation.
                             \E Q \in Quorums : \E A \in QuorumAnswers(Q) :
                                 /\  AllIdenticalRounds(A)
                                 /\  m.val \in SuccessorValues(A)
                                 /\  m.round = PickRound(A) + 1
         /\  m.type = "Answer" =>
+                \* For any answer, there must be a corresponding offer in the same round,
+                \* bearing the same value and primed status.
                 \E o \in msgs : 
                       /\  o.type = "Offer"
                       /\  o.round = m.lastRound
@@ -325,8 +358,7 @@ MsgInv ==
 (*****************************************************************************)
 ConsInv ==
     \A c \in Consenters :
-        \*  `lastRound[c]' can be set to `-1' if and only if `lastVal[c]' is `None'
-        \*  and vice-versa.
+        \*  `lastRound[c]' can be set to `-1' if and only if `lastVal[c]' is `None'.
         /\  lastRound[c] = -1 <=> lastVal[c] = None
         \*  `lastPrimed[c]' must be `FALSE' if `lastRound[c]' is in its initial state.
         /\  lastRound[c] = -1 => ~lastPrimed[c]
@@ -342,10 +374,9 @@ ConsInv ==
         /\  ~\E m \in msgs : m.type = "Answer" /\ m.cons = c /\ m.lastRound > lastRound[c]
         \*  A consenter votes at most once in any given round.
         /\  \A m1, m2 \in msgs :
-                /\  m1.type = "Answer" /\ m2.type = "Answer" 
-                /\  m1.cons = c /\ m2.cons = c 
-                /\  m1.lastRound = m2.lastRound 
-                => m1 = m2
+                m1.type = "Answer" /\ m2.type = "Answer" /\ m1.cons = c /\ m2.cons = c /\
+                m1.lastRound = m2.lastRound 
+                    => m1 = m2
 
 (*****************************************************************************)
 (* The complete inductive invariant.                                         *)

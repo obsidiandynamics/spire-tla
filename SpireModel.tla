@@ -1,11 +1,11 @@
 ---- MODULE SpireModel ----
 (*****************************************************************************)
 (* Extension of the base `Spire' module to facilitate bounded model          *)
-(* checking.                                                                 *)
+(* checking of its safety property.                                          *)
 (*****************************************************************************)
 EXTENDS Spire, TLC, FiniteSets, Randomization, Sequences
 
-CONSTANTS MaxRounds     \* an upper bound on `Rounds`
+CONSTANTS MaxRounds     \* an upper bound on `Rounds'
 
 \* A finite set of rounds, required for bounded model checking.
 FiniteRounds == 0..MaxRounds
