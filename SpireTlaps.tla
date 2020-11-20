@@ -267,8 +267,10 @@ LEMMA QuorumAnswerHasConsenters ==
 LEMMA IdentityOfPrimedRoundAnswers ==
     TypeOK /\ MsgInv /\ ConsInv => 
         \A m1, m2 \in msgs : 
-            m1.type = "Answer" /\ m1.lastPrimed /\ m2.type = "Answer" /\ m2.lastPrimed /\ m1.lastRound = m2.lastRound =>
-                m1.lastVal = m2.lastVal
+            /\ m1.type = "Answer" /\ m1.lastPrimed 
+            /\ m2.type = "Answer" /\ m2.lastPrimed 
+            /\ m1.lastRound = m2.lastRound 
+            => m1.lastVal = m2.lastVal
   <1> SUFFICES ASSUME TypeOK /\ MsgInv /\ ConsInv,
                       NEW m1 \in msgs,    NEW m2 \in msgs,
                       m1.type = "Answer", m2.type = "Answer",
@@ -659,10 +661,6 @@ LEMMA ChosenCarry ==
           BY <4>18, <4>19 DEF SuccessorValues, PickValue
         <4>99 QED
           BY <3>2, <4>20
-\*      <3>9 CASE ~AllIdenticalRounds(B)
-\*        <4>1 MaxLastRound(B) = r + 1
-\*          BY <3>2, <3>9
-\*        <4>99 QED
       <3>99 QED
         BY <3>2, <3>8
     <2>5. QED
@@ -1428,7 +1426,10 @@ LEMMA Inductive == Inv /\ Next => Inv'
                            /\  ~\E m \in msgs : m.type = "Answer" /\ m.cons = c /\ m.lastRound > lastRound[c]
                            \* a consenter answers at most once for any given lastRound
                            /\  \A m1, m2 \in msgs :
-                                   m1.type = "Answer" /\ m2.type = "Answer" /\ m1.cons = c /\ m2.cons = c /\ m1.lastRound = m2.lastRound => m1 = m2)'
+                                   /\ m1.type = "Answer" /\ m2.type = "Answer" 
+                                   /\ m1.cons = c /\ m2.cons = c 
+                                   /\ m1.lastRound = m2.lastRound 
+                                   => m1 = m2)'
         BY DEF ConsInv
       <3> USE DEF ConsInv
       <3>1. (lastRound[c] = -1 <=> lastVal[c] = None)'
@@ -1606,7 +1607,10 @@ LEMMA Inductive == Inv /\ Next => Inv'
                                    /\  m_1.lastPrimed = lastPrimed[d]
                            /\  ~\E m_1 \in msgs : m_1.type = "Answer" /\ m_1.cons = d /\ m_1.lastRound > lastRound[d]
                            /\  \A m1, m2 \in msgs :
-                                   m1.type = "Answer" /\ m2.type = "Answer" /\ m1.cons = d /\ m2.cons = d /\ m1.lastRound = m2.lastRound => m1 = m2)'
+                                   /\ m1.type = "Answer" /\ m2.type = "Answer" 
+                                   /\ m1.cons = d /\ m2.cons = d 
+                                   /\ m1.lastRound = m2.lastRound 
+                                   => m1 = m2)'
         BY DEF ConsInv
       <3> USE DEF ConsInv
       <3>1. (lastRound[d] = -1 <=> lastVal[d] = None)'
@@ -1650,8 +1654,10 @@ LEMMA Inductive == Inv /\ Next => Inv'
       <3>4. (~\E n \in msgs : n.type = "Answer" /\ n.cons = d /\ n.lastRound > lastRound[d])'
         BY <1>2 DEF Send, Messages, Rounds
       <3>5. (\A m1, m2 \in msgs :
-                 m1.type = "Answer" /\ m2.type = "Answer" /\ m1.cons = d /\ m2.cons = d /\ m1.lastRound = m2.lastRound 
-                      => m1 = m2)'
+                 /\ m1.type = "Answer" /\ m2.type = "Answer" 
+                 /\ m1.cons = d /\ m2.cons = d 
+                 /\ m1.lastRound = m2.lastRound 
+                 => m1 = m2)'
         BY <1>2 DEF Send, Messages
       <3>6. QED
         BY <3>1, <3>2, <3>3, <3>4, <3>5

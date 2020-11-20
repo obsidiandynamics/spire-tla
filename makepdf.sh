@@ -13,6 +13,10 @@ fi
 
 module=$1
 
-java -cp  ~/.vscode/extensions/alygin.vscode-tlaplus-1.5.1/tools/tla2tools.jar tla2tex.TLA $module.tla
-java -cp  ~/.vscode/extensions/alygin.vscode-tlaplus-1.5.1/tools/tla2tools.jar tla2tex.TeX $module.tex
+# To get a list of command line options, run `java -cp  $tools_path tla2tex.TLA -info`
+
+tools_path=~/.vscode/extensions/alygin.vscode-tlaplus-1.5.1/tools/tla2tools.jar
+opts=" -number -shade -grayLevel .95"
+java -cp  $tools_path tla2tex.TLA $opts $module.tla
+java -cp  $tools_path tla2tex.TeX $module.tex
 pdflatex -interaction scrollmode $module.tex || echo "Done with exit code $?"

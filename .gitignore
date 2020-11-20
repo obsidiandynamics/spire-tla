@@ -6,6 +6,7 @@
 *.old
 *.aux
 *.log
+*.ps
 states/
 *SnapShot*
 .DS_Store
