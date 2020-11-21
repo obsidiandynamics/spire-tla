@@ -1,24 +1,36 @@
 ---- MODULE SpireTlaps ----
 EXTENDS Spire, TLAPS, NaturalsInduction, FiniteSetTheorems
 
+(*****************************************************************************)
+(*****************************************************************************)
 LEMMA QuorumNonEmpty == \A Q \in Quorums : Q # {}
   BY QuorumAssumption
-  
+
+(*****************************************************************************)
+(*****************************************************************************)  
 LEMMA NoneNotAValue == None \notin Values
   BY NoSetContainsEverything DEF None
-  
+
+(*****************************************************************************)
+(*****************************************************************************)  
 LEMMA QuorumAnswerHasConsenter ==
     \A Q \in Quorums : \A A \in QuorumAnswers(Q) : A # {} => \E a \in A : a.cons \in Q
   BY DEF QuorumAnswers, Answers
-  
+
+(*****************************************************************************)
+(*****************************************************************************)  
 LEMMA AnswersNonEmpty ==
     \A Q \in Quorums : \A A \in QuorumAnswers(Q) : Q # {} <=> A # {}
   BY DEF QuorumAnswers, Answers
-  
+
+(*****************************************************************************)
+(*****************************************************************************)  
 LEMMA PickRoundImage ==
     \A M \in SUBSET Messages : M # {} => PickRound(M) \in {m.lastRound : m \in M}
   BY DEF PickRound, Messages
-  
+
+(*****************************************************************************)
+(*****************************************************************************)  
 LEMMA PickValueImage ==
     \A M \in SUBSET Messages : M # {} => PickValue(M) \in {m.lastVal : m \in M}
   BY DEF PickValue, Messages
@@ -26,7 +38,9 @@ LEMMA PickValueImage ==
 
 HasMax(S) ==
     S \in SUBSET Nat /\ S # {} => \E n1 \in S : \A n2 \in S : n1 >= n2
- 
+
+(*****************************************************************************)
+(*****************************************************************************) 
 LEMMA AdditionHasMax ==
     \A S \in SUBSET Nat, x \in Nat : x \notin S /\ HasMax(S)
         => HasMax(S \union {x})
@@ -65,6 +79,8 @@ LEMMA AdditionHasMax ==
 \*  <1> QED
 \*    BY <1>1, <1>3, FS_Induction, IsaM("blast") DEF HasMax
 
+(*****************************************************************************)
+(*****************************************************************************)
 LEMMA AllHaveMax ==
   ASSUME NEW S \in SUBSET Nat,
          S # {},
@@ -134,7 +150,9 @@ LEMMA AllHaveMax ==
 \*  <1> QED
 \*    BY AllHaveMax DEF SetMax
 \*    
-  
+
+(*****************************************************************************)
+(*****************************************************************************)  
 LEMMA MaxLastRoundImage ==
     \A M \in SUBSET Messages : M # {} => MaxLastRound(M) \in {m.lastRound : m \in M}
   <1> SUFFICES ASSUME NEW M \in SUBSET Messages,
@@ -164,7 +182,9 @@ LEMMA MaxLastRoundImage ==
   <1>99 QED
     BY <1>21
   
-  
+
+(*****************************************************************************)
+(*****************************************************************************)  
 LEMMA SuccessorValuesImage ==
     \A M \in SUBSET Messages : M # {} => SuccessorValues(M) \in SUBSET {m.lastVal : m \in M}
   <1> SUFFICES ASSUME NEW M \in SUBSET Messages,
@@ -193,12 +213,16 @@ LEMMA SuccessorValuesImage ==
   <1>99 QED
     BY <1>80, <1>90
 
+(*****************************************************************************)
+(*****************************************************************************)
 \* A uniform set of answers leads to a single successor value.
 LEMMA UniformAnswerSuccessorSingularity ==
     \A M \in SUBSET Messages : M # {} /\ AllIdenticalRounds(M) /\ AllIdenticalValues(M) 
         => SuccessorValues(M) = {PickValue(M)}
     BY DEF SuccessorValues, AllIdenticalRounds, AllIdenticalValues, MaxLastRound, SetMax, PickValue
 
+(*****************************************************************************)
+(*****************************************************************************)
 LEMMA PrimedOfferFollowsDominantAnswer ==
     TypeOK /\ MsgInv => 
         \A o \in msgs : o.type = "Offer" /\ o.primed =>
@@ -258,12 +282,15 @@ LEMMA PrimedOfferFollowsDominantAnswer ==
   <1>99 QED
     BY <1>8
   
-    
+(*****************************************************************************)
+(*****************************************************************************)    
 LEMMA QuorumAnswerHasConsenters ==
     \A Q \in Quorums : \A A \in QuorumAnswers(Q) : \A c \in Q : \E a \in A : a.cons = c
   BY DEF QuorumAnswers, Answers
   
 \* All primed answers in a given round must refer to the same value.
+(*****************************************************************************)
+(*****************************************************************************)
 LEMMA IdentityOfPrimedRoundAnswers ==
     TypeOK /\ MsgInv /\ ConsInv => 
         \A m1, m2 \in msgs : 
@@ -318,6 +345,8 @@ LEMMA IdentityOfPrimedRoundAnswers ==
     BY <1>41, <1>42 DEF QuorumAnswers, Answers, ConsInv
   
 \* If all answers for a given round are primed, then they must refer to the same value.
+(*****************************************************************************)
+(*****************************************************************************)
 LEMMA SingularPrimedRoundQuorumAnswer ==
     TypeOK /\ MsgInv /\ ConsInv => 
         \A Q \in Quorums : \A A \in QuorumAnswers(Q) : 
@@ -352,7 +381,9 @@ OfferedIn(r, v) ==
     
 AnsweredIn(r, v) ==
     \E o \in msgs : o.type = "Answer" /\ o.lastRound = r /\ o.lastVal = v
-    
+
+(*****************************************************************************)
+(*****************************************************************************)    
 LEMMA ChosenFromOffer ==
     MsgInv =>
         \A r \in Rounds, v \in Values : ChosenIn(r, v) => OfferedIn(r, v)
@@ -373,6 +404,8 @@ LEMMA ChosenFromOffer ==
   <1>3 QED
     BY <1>1, <1>2 DEF OfferedIn
 
+(*****************************************************************************)
+(*****************************************************************************)
 LEMMA OfferFromPreviousRoundAnswer ==
     TypeOK /\ MsgInv =>
         \A r \in Rounds, v \in Values : r # 0 /\ OfferedIn(r, v) => AnsweredIn(r - 1, v)
@@ -383,10 +416,6 @@ LEMMA OfferFromPreviousRoundAnswer ==
                       o.type = "Offer" /\ o.round = r /\ o.val = v
                PROVE  AnsweredIn(r - 1, v)
     BY DEF OfferedIn
-\*  <1>3 \A mmm \in A : mmm.type = "Answer" /\ mmm.lastRound = r /\ mmm.lastPrimed
-\*    BY DEF QuorumAnswers, Answers, AllIdenticalRounds, AllPrimed
-\*  <1>4 \A mmm \in A : mmm.lastVal = v
-\*    BY SingularPrimedRoundQuorumAnswer DEF TypeOK, MsgInv, ConsInv
   <1>5 \A n \in msgs : n.type = "Offer" /\ n.round = r /\ n.val = v =>
             /\ n.primed => 
                 \E R \in Quorums : \E B \in QuorumAnswers(R) :
@@ -478,6 +507,8 @@ LEMMA OfferFromPreviousRoundAnswer ==
   <1>99 QED
     BY <1>5 DEF AnsweredIn
 
+(*****************************************************************************)
+(*****************************************************************************)
 LEMMA NotOfferedInCarry ==
     TypeOK /\ MsgInv =>
         \A r \in Nat, V \in SUBSET Values : NotOfferedIn(r, V) => NotOfferedIn(r + 1, V)
@@ -503,7 +534,9 @@ LEMMA NotOfferedInCarry ==
     BY <1>3, <1>4b DEF MsgInv, Rounds, Messages, TypeOK
   <1>99 QED
     BY <1>8  
-  
+
+(*****************************************************************************)
+(*****************************************************************************)  
 LEMMA NotOfferedInSuffix ==
   ASSUME TypeOK, MsgInv,
          NEW r \in Rounds, 
@@ -521,6 +554,8 @@ LEMMA NotOfferedInSuffix ==
   <1> QED
     BY <1>1, <1>2, NatInduction DEF Rounds
 
+(*****************************************************************************)
+(*****************************************************************************)
 LEMMA RoundAnswersOverlap ==
     ConsInv =>
         \A Q, R \in Quorums : \A A \in QuorumAnswers(Q), B \in QuorumAnswers(R) : 
@@ -528,6 +563,8 @@ LEMMA RoundAnswersOverlap ==
                 \E a \in A, b \in B : a = b
   BY QuorumAssumption DEF ConsInv, QuorumAnswers, Answers
 
+(*****************************************************************************)
+(*****************************************************************************)
 LEMMA ChosenCarry ==
     TypeOK /\ MsgInv /\ ConsInv =>
         \A r \in Rounds, v1, v2 \in Values : ChosenIn(r, v1) /\ OfferedIn(r + 1, v2) => v1 = v2
@@ -668,10 +705,15 @@ LEMMA ChosenCarry ==
   <1>99 QED 
     BY <1>5
         
-        
+(*****************************************************************************)
+(* Stability of value selection:                                             *)
+(* For any two rounds `r1' and `r2', where `r2 > r1', if some value `v' is   *)
+(* chosen in `r1' then only `v' may be offered in `r2'.                      *)
+(*****************************************************************************)
 LEMMA Stable ==
     TypeOK /\ MsgInv /\ ConsInv =>
-        \A r1, r2 \in Rounds, v1, v2 \in Values : r1 < r2 /\ ChosenIn(r1, v1) /\ OfferedIn(r2, v2) => v1 = v2
+        \A r1, r2 \in Rounds, v1, v2 \in Values : r1 < r2 /\ ChosenIn(r1, v1) /\ OfferedIn(r2, v2) 
+            => v1 = v2
   <1> SUFFICES ASSUME TypeOK, MsgInv, ConsInv,
                       NEW r1 \in Rounds,  NEW r2 \in Rounds, 
                       NEW v1 \in Values,  NEW v2 \in Values,
@@ -698,11 +740,17 @@ LEMMA Stable ==
     BY <1>4, NotOfferedInSuffix DEF Rounds
   <1>6 QED
     BY <1>5 DEF NotOfferedIn, OfferedIn
-
   
+(*****************************************************************************)
+(* The initial state satisfies the inductive invariant `Inv'.                *)
+(*****************************************************************************)
 LEMMA Initial == Init => Inv
   BY DEF Init, Inv, MsgInv, ConsInv
-  
+
+(*****************************************************************************)
+(* All states that satisfy the inductive invariant `Inv' also                *)
+(* satisfy the `Consistency' invariant.                                      *)
+(*****************************************************************************)  
 LEMMA Consistent == Inv => Consistency
   <1> SUFFICES ASSUME Inv,
                       NEW v1 \in Values,          NEW v2 \in Values,
@@ -754,7 +802,13 @@ LEMMA InvariantPreservedOnUnchanged ==
     BY DEF ConsInv
   <1>7. QED
     BY <1>1, <1>2, <1>3, <1>4, <1>5, <1>6 DEF Inv
-
+    
+(*****************************************************************************)
+(* Preservation of the inductive invariant:                                  *)
+(* Starting from any state that satisfies the inductive invariant `Inv', all *)
+(* possible transitions will result in a next state that also                *)
+(* satisfies `Inv'.                                                          *)
+(*****************************************************************************)
 LEMMA Inductive == Inv /\ Next => Inv'
   <1> SUFFICES ASSUME Inv,
                       Next
@@ -996,7 +1050,10 @@ LEMMA Inductive == Inv /\ Next => Inv'
                   BY <3>1 DEF TrySend, Send
                 \* When `m' is in `msgs', the invariant is preserved.
                 <8>2 CASE m \in msgs
-                  BY <7>1, <7>4, <8>1, <8>2 DEF QuorumAnswers, Answers
+                  <9>1 (A \in QuorumAnswers(Q) /\ AllIdenticalRounds(A))'
+                    BY <3>1, <4>4, <8>1 DEF QuorumAnswers, Answers, AllIdenticalRounds
+                  <9>2 QED
+                    BY <3>1, <4>4, <7>1, <7>4, <8>1, <8>2, <9>1 DEF TrySend, Send, QuorumAnswers, Answers, AllIdenticalRounds
                 \* For the `m \notin msgs' sub-case, we employ additional hints to show that the predicates
                 \* `A \in QuorumAnswers(Q)', `AllIdenticalRounds(A)', `m.val \in SuccessorValues(A)'
                 \* and `m.round = PickRound(A) + 1' are preserved in the next state.
@@ -1550,7 +1607,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
     BY <1>1, <1>2, <1>3, <1>4 DEF Answer, Next
 
 (*****************************************************************************)
-(* Proves the main correctness theorem. Specifically, that if a value is     *)
+(* Proves the main correctness theorem; specifically, that if a value is     *)
 (* chosen within a run of the algorithm, no other value may subsequently be  *)
 (* chosen within that run.                                                   *)
 (*                                                                           *)
