@@ -1048,114 +1048,95 @@ LEMMA Inductive == Inv /\ Next => Inv'
                                                    /\  m.round = PickRound(A_1) + 1)'
                 OBVIOUS
               <7>1. (m.round = 0 => ~m.primed)'
-                <8>1 CASE m \in msgs
-                  BY <8>1
-                <8>2 CASE m \notin msgs
-                  <9>1 \E v \in SuccessorValues(A) : 
-                            m = [type |-> "Offer", val |-> v, round |-> PickRound(A) + 1, primed |-> FALSE]
-                    BY <3>1, <4>4, <5>2, <8>2 DEF TrySend, Send
-                  <9>2 A \in SUBSET Messages /\ A # {} /\ \A a \in A : a.lastRound \in Rounds
-                    BY <3>1, QuorumAssumption DEF QuorumAnswers, Answers, Messages
-                  <9>3 PickRound(A) \in Rounds
-                    BY <9>2, PickRoundImage
-                  <9>4 PickRound(A) + 1 > 0
-                    BY <9>3 DEF Rounds
-                  <9>5 QED
-                    BY <9>1, <9>4
-                <8>3 QED
-                  BY <8>1, <8>2
+                <8>1 \E v \in SuccessorValues(A) : 
+                          msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> PickRound(A) + 1, primed |-> FALSE]}
+                  BY <3>1, <4>4, <5>2 DEF TrySend, Send
+                <8>2 A \in SUBSET Messages /\ A # {} /\ \A a \in A : a.lastRound \in Rounds
+                  BY <3>1, QuorumAssumption DEF QuorumAnswers, Answers, Messages
+                <8>3 PickRound(A) \in Rounds
+                  BY <8>2, PickRoundImage
+                <8>4 PickRound(A) + 1 > 0
+                  BY <8>3 DEF Rounds
+                <8>5 QED
+                  BY <8>1, <8>4
               <7>2. (m.round # 0 =>
                          /\ m.primed => 
-                             \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                                 /\  AllIdenticalRounds(A_1) /\ AllIdenticalValues(A_1)
-                                 /\  m.val = PickValue(A_1)
-                                 /\  m.round = PickRound(A_1) + 1
+                             \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                                 /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
+                                 /\  m.val = PickValue(B)
+                                 /\  m.round = PickRound(B) + 1
                          /\ ~m.primed =>
-                             \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                                 /\  AllIdenticalRounds(A_1)
-                                 /\  m.val \in SuccessorValues(A_1)
-                                 /\  m.round = PickRound(A_1) + 1)'
+                             \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                                 /\  AllIdenticalRounds(B)
+                                 /\  m.val \in SuccessorValues(B)
+                                 /\  m.round = PickRound(B) + 1)'
                 <8> SUFFICES ASSUME (m.round # 0)'
                              PROVE  (/\ m.primed => 
-                                         \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                                             /\  AllIdenticalRounds(A_1) /\ AllIdenticalValues(A_1)
-                                             /\  m.val = PickValue(A_1)
-                                             /\  m.round = PickRound(A_1) + 1
+                                         \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                                             /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
+                                             /\  m.val = PickValue(B)
+                                             /\  m.round = PickRound(B) + 1
                                      /\ ~m.primed =>
-                                         \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                                             /\  AllIdenticalRounds(A_1)
-                                             /\  m.val \in SuccessorValues(A_1)
-                                             /\  m.round = PickRound(A_1) + 1)'
+                                         \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                                             /\  AllIdenticalRounds(B)
+                                             /\  m.val \in SuccessorValues(B)
+                                             /\  m.round = PickRound(B) + 1)'
                   OBVIOUS
                 <8>1. (m.primed => 
-                        \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                            /\  AllIdenticalRounds(A_1) /\ AllIdenticalValues(A_1)
-                            /\  m.val = PickValue(A_1)
-                            /\  m.round = PickRound(A_1) + 1)'
-\*                  <9>1 CASE ~m.primed
-\*                    BY <9>1
-                  <9>2 CASE m.primed /\ m \in msgs
-                    <10>1 \E v \in SuccessorValues(A) : 
-                              msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> PickRound(A) + 1, primed |-> FALSE]}
-                      BY <3>1, <4>4, <5>2 DEF TrySend, Send
-                    <10>2 QED
-                      BY <10>1, <9>2 DEF QuorumAnswers, Answers   
-                  <9>3 CASE m.primed /\ m \notin msgs
+                          \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                              /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
+                              /\  m.val = PickValue(B)
+                              /\  m.round = PickRound(B) + 1)'
+                  \* Either `m' is not in `msgs', or the newly sent message `m' is unprimed.
+                  <9>1 \E v \in SuccessorValues(A) : 
+                            msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> PickRound(A) + 1, primed |-> FALSE]}
+                    BY <3>1, <4>4, <5>2 DEF TrySend, Send
+                  <9>2 QED
+                    BY <9>1 DEF QuorumAnswers, Answers
+                <8>2. (~m.primed =>
+                          \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                              /\  AllIdenticalRounds(B)
+                              /\  m.val \in SuccessorValues(B)
+                              /\  m.round = PickRound(B) + 1)'
+                  <9>1 msgs \subseteq msgs'
+                    BY <3>1 DEF TrySend, Send
+                  \* When `m' is not in `msgs', the invariant is preserved.
+                  <9>2 CASE ~m.primed /\ m \in msgs
+                    BY <9>1, <9>2 DEF QuorumAnswers, Answers
+                  \* When `m' is the newly sent message, the invariant is a simple consequence of the
+                  \* definition of `Offer', with additional hints to show that the predicates
+                  \* `A \in QuorumAnswers(Q)', `AllIdenticalRounds(A)', `m.val \in SuccessorValues(A)'
+                  \* and `m.round = PickRound(A) + 1' are preserved in the next state.
+                  <9>3 CASE ~m.primed /\ m \notin msgs
                     <10>1 \E v \in SuccessorValues(A) : 
                               m = [type |-> "Offer", val |-> v, round |-> PickRound(A) + 1, primed |-> FALSE]
                       BY <3>1, <4>4, <5>2, <9>3 DEF TrySend, Send
-                    <10>2 QED
-                      BY <10>1, <9>3          
+                    <10>3 (A \in QuorumAnswers(Q) /\ AllIdenticalRounds(A))'
+                      BY <3>1, <4>4, <9>1, <9>3 DEF QuorumAnswers, Answers, AllIdenticalRounds
+                    <10>4 (m.val \in SuccessorValues(A))'
+                      BY <3>1, <4>4, <10>1
+                    <10>5 (m.round = PickRound(A) + 1)'
+                      BY <3>1, <4>4, <10>1
+                    <10>6 QED
+                      BY <10>3, <10>4, <10>5
                   <9>4 QED
                     BY <9>2, <9>3
-                <8>2. (~m.primed =>
-                        \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                            /\  AllIdenticalRounds(A_1)
-                            /\  m.val \in SuccessorValues(A_1)
-                            /\  m.round = PickRound(A_1) + 1)'
-                  <9>4 CASE ~m.primed /\ m \in msgs
-                    <10>1 \E v \in SuccessorValues(A) : 
-                              msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> PickRound(A) + 1, primed |-> FALSE]}
-                      BY <3>1, <4>4, <5>2 DEF TrySend, Send
-                    <10>2 QED
-                      BY <10>1, <9>4 DEF QuorumAnswers, Answers  
-                  <9>5 CASE ~m.primed /\ m \notin msgs
-                    <10>1 \E v \in SuccessorValues(A) : 
-                              m = [type |-> "Offer", val |-> v, round |-> PickRound(A) + 1, primed |-> FALSE]
-                      BY <3>1, <4>4, <5>2, <9>5 DEF TrySend, Send
-                    <10>3 msgs \subseteq msgs'
-                      BY <3>1 DEF TrySend, Send
-                    <10>31 (Q \in Quorums /\ A \in QuorumAnswers(Q) /\ AllIdenticalRounds(A))'
-                      BY <3>1, <4>4, <5>2, <9>5, <10>3 DEF QuorumAnswers, Answers, AllIdenticalRounds, Rounds, Messages
-                    <10>4 (m.val \in SuccessorValues(A))'
-                      BY <3>1, <4>4, <5>2, <9>5, <10>1
-                    <10>5 (m.round = PickRound(A) + 1)'
-                      BY <3>1, <4>4, <5>2, <9>5, <10>1
-                    <10>6 QED
-                      BY <10>31, <10>4, <10>5
-                  <9>6 QED
-                    BY <9>4, <9>5
                 <8>3. QED
                   BY <8>1, <8>2
               <7>3. QED
                 BY <7>1, <7>2
             <6>2. (m.type = "Answer" =>
                        \E o \in msgs : 
-                             /\  o.type = "Offer"
-                             /\  o.round = m.lastRound
-                             /\  o.val = m.lastVal
-                             /\  o.primed = m.lastPrimed)'
-              <7>1 CASE m \in msgs
-                BY <1>1, <3>1, <4>4, <5>2, <7>1 DEF TrySend, Send
-              <7>2 CASE m \notin msgs
-                \* If `m' is not in msgs, then it must be an answer type.
-                <8>1 \E v \in SuccessorValues(A) : 
-                          m = [type |-> "Offer", val |-> v, round |-> PickRound(A) + 1, primed |-> FALSE]
-                  BY <3>1, <4>4, <5>2, <7>2 DEF TrySend, Send
-                <8>2 QED
-                  BY <8>1
-              <7>3 QED
-                BY <7>1, <7>2
+                           /\  o.type = "Offer"
+                           /\  o.round = m.lastRound
+                           /\  o.val = m.lastVal
+                           /\  o.primed = m.lastPrimed)'
+              \* Either `msgs' is unchanged or the newly sent message is an offer.
+              <7>1 \E v \in SuccessorValues(A) : 
+                        msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> PickRound(A) + 1, primed |-> FALSE]}
+                BY <3>1, <4>4, <5>2 DEF TrySend, Send
+              <7>2 QED
+                BY <7>1
             <6>3. QED
               BY <6>1, <6>2
           <5>3 QED
@@ -1165,155 +1146,145 @@ LEMMA Inductive == Inv /\ Next => Inv'
                        PROVE  (/\  m.type = "Offer" =>
                                        /\  m.round = 0 => ~m.primed
                                        /\  m.round # 0 =>
-                                               /\ m.primed => 
-                                                   \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                                                         /\  AllIdenticalRounds(A_1) /\ AllIdenticalValues(A_1)
-                                                       /\  m.val = PickValue(A_1)
-                                                       /\  m.round = PickRound(A_1) + 1
-                                               /\ ~m.primed =>
-                                                   \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                                                         /\  AllIdenticalRounds(A_1)
-                                                       /\  m.val \in SuccessorValues(A_1)
-                                                       /\  m.round = PickRound(A_1) + 1
+                                            /\ m.primed => 
+                                                 \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                                                     /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
+                                                     /\  m.val = PickValue(B)
+                                                     /\  m.round = PickRound(B) + 1
+                                            /\ ~m.primed =>
+                                                 \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                                                     /\  AllIdenticalRounds(B)
+                                                     /\  m.val \in SuccessorValues(B)
+                                                     /\  m.round = PickRound(B) + 1
                                /\  m.type = "Answer" =>
                                        \E o \in msgs : 
-                                             /\  o.type = "Offer"
-                                             /\  o.round = m.lastRound
-                                             /\  o.val = m.lastVal
-                                             /\  o.primed = m.lastPrimed)'
+                                            /\  o.type = "Offer"
+                                            /\  o.round = m.lastRound
+                                            /\  o.val = m.lastVal
+                                            /\  o.primed = m.lastPrimed)'
             BY DEF MsgInv
           <5>1. (m.type = "Offer" =>
                      /\  m.round = 0 => ~m.primed
                      /\  m.round # 0 =>
                              /\ m.primed => 
-                                 \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                                     /\  AllIdenticalRounds(A_1) /\ AllIdenticalValues(A_1)
-                                     /\  m.val = PickValue(A_1)
-                                     /\  m.round = PickRound(A_1) + 1
+                                   \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                                       /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
+                                       /\  m.val = PickValue(B)
+                                       /\  m.round = PickRound(B) + 1
                              /\ ~m.primed =>
-                                 \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                                     /\  AllIdenticalRounds(A_1)
-                                     /\  m.val \in SuccessorValues(A_1)
-                                     /\  m.round = PickRound(A_1) + 1)'
-            <6>1 CASE m.round = 0
-              <8>1 CASE m \in msgs
-                  BY <6>1, <8>1
-              <8>2 CASE m \notin msgs
-                <9>1 \E v \in SuccessorValues(A) : 
-                          m = [type |-> "Offer", val |-> v, round |-> MaxLastRound(A), primed |-> FALSE]
-                  BY <3>1, <4>5, <6>1, <8>2 DEF TrySend, Send
-                <9>2 A \in SUBSET Messages /\ A # {} /\ \A a \in A : a.lastRound \in Rounds
-                  BY <3>1, QuorumAssumption DEF QuorumAnswers, Answers, Messages
-                <9>3 PickRound(A) \in Rounds
-                  BY <9>2, PickRoundImage
-                <9>4 PickRound(A) + 1 > 0
-                  BY <9>3 DEF Rounds
-                <9>5 QED
-                  BY <6>1, <8>2, <9>1, <9>4
-              <8>3 QED
-                BY <8>1, <8>2
-            <6>2 CASE m.round # 0 /\ m.primed
-              <8>1 CASE m.type = "Offer" /\ m \in msgs
-                <10>1 \E v \in SuccessorValues(A) : 
-                          msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> MaxLastRound(A), primed |-> FALSE]}
-                  BY <3>1, <4>5, <6>2 DEF TrySend, Send
-                <10>2 \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                                     /\  AllIdenticalRounds(A_1) /\ AllIdenticalValues(A_1)
-                                     /\  m.val = PickValue(A_1)
-                                     /\  m.round = PickRound(A_1) + 1
-                  BY <3>1, <4>5, <6>2, <8>1
-                <10>99 QED
-                  BY <6>2, <8>1, <10>1, <10>2 DEF QuorumAnswers, Answers 
-              <8>2 CASE m.type = "Offer" /\ m \notin msgs
-                <10>1 \E v \in SuccessorValues(A) : 
-                          m = [type |-> "Offer", val |-> v, round |-> MaxLastRound(A), primed |-> FALSE]
-                   BY <3>1, <4>5, <6>2, <8>2 DEF TrySend, Send
-                <10>99 QED
-                   BY <6>2, <8>2, <10>1
-              <8>3
-                QED BY <8>1, <8>2
-            <6>3 CASE m.round # 0 /\ ~m.primed
-              <8>1 CASE m.type = "Offer" /\ m \in msgs
-                <10>1 \E v \in SuccessorValues(A) : 
+                                   \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                                       /\  AllIdenticalRounds(B)
+                                       /\  m.val \in SuccessorValues(B)
+                                       /\  m.round = PickRound(B) + 1)'
+            \* Round-0 case holds for existing messages, and the newly sent message is
+            \* not in round 0 as the quorum-answer `A' spans multiple rounds and `MaxLastRound(A)'
+            \* will therefore be greater than 0.
+            <6>1 CASE m.type = "Offer" /\ m.round = 0
+              <7>1 \E v \in SuccessorValues(A) : 
+                        msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> MaxLastRound(A), primed |-> FALSE]}
+                BY <3>1, <4>5, <6>1 DEF TrySend, Send
+              <7>2 A \in SUBSET Messages /\ A # {} /\ \A a \in A : a.lastRound \in Rounds
+                BY <3>1, QuorumAssumption DEF QuorumAnswers, Answers, Messages
+              <7>3 PickRound(A) \in Rounds
+                BY <7>2, PickRoundImage
+              <7>4 PickRound(A) + 1 > 0
+                BY <7>3 DEF Rounds
+              <7>5 QED
+                BY <6>1, <7>1, <7>4
+            \* Non-zero round with primed offer: holds for existing messages and the newly sent
+            \* message is unprimed.
+            <6>2 CASE m.type = "Offer" /\ m.round # 0 /\ m.primed
+              <7>1 \E v \in SuccessorValues(A) : 
+                        msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> MaxLastRound(A), primed |-> FALSE]}
+                 BY <3>1, <4>5, <6>2 DEF TrySend, Send
+              <7>2 QED
+                 BY <6>2, <7>1 DEF QuorumAnswers, Answers 
+            \* Non-zero round with unprimed offer. See detailed comment at `MsgInv' for the case where
+            \* `\A m \in msgs : m.type = "Offer" /\ m.round # 0 /\ ~m.primed', outlining the proof strategy.
+            \* While the offer may have been based on a current-round answer, we rely on the `MsgInv'
+            \* inductive invariant, which states that every answer must have been in response to some
+            \* offer in the same round, and every offer must have propagated the value from some
+            \* answer in the immediately preceding round.
+            <6>3 CASE m.type = "Offer" /\ m.round # 0 /\ ~m.primed
+              \* The `m \in msgs' sub-case is trivially proven by the preservation of `msgs'.
+              <7>1 CASE m \in msgs
+                <8>1 \E v \in SuccessorValues(A) : 
                           msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> MaxLastRound(A), primed |-> FALSE]}
                   BY <3>1, <4>5, <6>3 DEF TrySend, Send
-                <10>2 \E Q_1 \in Quorums : \E A_1 \in QuorumAnswers(Q_1) :
-                                     /\  AllIdenticalRounds(A_1)
-                                     /\  m.val \in SuccessorValues(A_1)
-                                     /\  m.round = PickRound(A_1) + 1
-                  BY <3>1, <4>5, <6>3, <8>1
-                <10>99 QED
-                  BY <6>3, <8>1, <10>1, <10>2 DEF QuorumAnswers, Answers 
-              <8>2 CASE m.type = "Offer" /\ m \notin msgs
-                <10>1 \E v \in SuccessorValues(A) : 
+                <8>2 \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                         /\  AllIdenticalRounds(B)
+                         /\  m.val \in SuccessorValues(B)
+                         /\  m.round = PickRound(B) + 1
+                  BY <3>1, <4>5, <6>3, <7>1
+                <8>3 QED
+                  BY <6>3, <7>1, <8>1, <8>2 DEF QuorumAnswers, Answers
+              \* For the `m \notin msgs' sub-case, we tie the newly sent offer `m' to an existing
+              \* answer in the current round which we pick as `a'. Then by `MsgInv', we show
+              \* that `a' must have a corresponding offer `o' in the current round. We then
+              \* infer that `o' must have preserved a value from the immediately preceding round
+              \* by `MsgInv'. Therefore, `a' must have preserved some value from `a.round - 1'.
+              <7>2 CASE m \notin msgs
+                <8>1 \E v \in SuccessorValues(A) : 
                           m = [type |-> "Offer", val |-> v, round |-> MaxLastRound(A), primed |-> FALSE]
-                   BY <3>1, <4>5, <6>3, <8>2 DEF TrySend, Send
-                <10>2 MaxLastRound(A) = m.round
-                   BY <10>1
-                <10>3 A # {}
+                   BY <3>1, <4>5, <6>3, <7>2 DEF TrySend, Send
+                <8>2 MaxLastRound(A) = m.round
+                   BY <8>1
+                <8>3 A # {}
                    BY <3>1, QuorumAssumption DEF QuorumAnswers, Answers
-                <10>4 SuccessorValues(A) # {}
-                  BY <10>1
-                <10>a DEFINE highestRoundAnswers == {a \in A : a.lastRound = MaxLastRound(A)}
-                <10>b DEFINE highestRoundPrimedAnswers == {a \in highestRoundAnswers : a.lastPrimed}
-                <10>5 SuccessorValues(A) = IF highestRoundPrimedAnswers # {} THEN 
+                <8>4 SuccessorValues(A) # {}
+                  BY <8>1
+                <8>5 DEFINE highestRoundAnswers == {a \in A : a.lastRound = MaxLastRound(A)}
+                            highestRoundPrimedAnswers == {a \in highestRoundAnswers : a.lastPrimed}
+                <8>6 SuccessorValues(A) = IF highestRoundPrimedAnswers # {} THEN 
                                               {PickValue(highestRoundPrimedAnswers)}
                                            ELSE
                                               {a.lastVal : a \in highestRoundAnswers}
                    BY <3>1 DEF SuccessorValues
-                <10>6 \A v \in SuccessorValues(A) : \E a \in A : a.lastVal = v /\ a.lastRound = MaxLastRound(A)
-                  BY <10>5 DEF PickValue
-                <10>7 \E a \in A : a.lastRound = MaxLastRound(A) /\ a.lastVal \in SuccessorValues(A)
-                  BY <10>6, <10>4
-                <10>9 PICK a \in A : a.lastRound = m.round /\ a.lastVal = m.val
-                  BY <10>1, <10>6
-                <10>10 a \in msgs /\ a.type = "Answer"
+                <8>7 \A v \in SuccessorValues(A) : \E a \in A : a.lastVal = v /\ a.lastRound = MaxLastRound(A)
+                  BY <8>6 DEF PickValue
+                <8>8 HIDE DEF highestRoundAnswers, highestRoundPrimedAnswers
+                <8>9 \E a \in A : a.lastRound = MaxLastRound(A) /\ a.lastVal \in SuccessorValues(A)
+                  BY <8>7, <8>4
+                <8>10 PICK a \in A : a.lastRound = m.round /\ a.lastVal = m.val
+                  BY <8>1, <8>7
+                <8>11 a \in msgs /\ a.type = "Answer"
                   BY <3>1 DEF QuorumAnswers, Answers
-                <10>11 PICK o \in msgs : o.type = "Offer" /\ o.round = a.lastRound /\ o.val = a.lastVal /\ o.primed = a.lastPrimed
-                  BY <3>1, <10>9, <10>10
-                <10>12 o.round # 0 /\ o.val = m.val /\ o.round = m.round
-                  BY <6>3, <10>11, <10>9
-                <10>13 msgs \subseteq msgs'
+                <8>12 PICK o \in msgs : o.type = "Offer" /\ o.round = a.lastRound /\ o.val = a.lastVal /\ o.primed = a.lastPrimed
+                  BY <3>1, <8>10, <8>11
+                <8>13 o.round # 0 /\ o.val = m.val /\ o.round = m.round
+                  BY <6>3, <8>12, <8>10
+                <8>14 msgs \subseteq msgs'
                   BY <3>1 DEF TrySend, Send
-                <10>14 m.type = "Offer" /\ m.round # 0 /\ ~m.primed
-                  BY <10>1, <10>12
-                <10>20 o.primed => \E R \in Quorums : \E B \in QuorumAnswers(R) :
-                                         /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
-                                         /\  o.val = PickValue(B)
-                                         /\  o.round = PickRound(B) + 1
-                  BY <3>1, <10>9, <10>11, <10>12
-                <10>30 ~o.primed => \E R \in Quorums : \E B \in QuorumAnswers(R) :
-                                         /\  AllIdenticalRounds(B)
-                                         /\  o.val \in SuccessorValues(B)
-                                         /\  o.round = PickRound(B) + 1
-                  BY <3>1, <10>9, <10>11, <10>12
-                <10>21 CASE o.primed
-                  \* TODO easiest thing is to prove that AllIdenticalRounds(M) /\ AllIdenticalValues(M) => SuccessorValues(M) = {PickValue(M)}
-\*                  <11>0 \A B \in SUBSET Messages : AllIdenticalRounds(B) /\ AllIdenticalValues(B) => SuccessorValues(B) = {PickValue(B)}
-                  <11>1 (\E R \in Quorums : \E B \in QuorumAnswers(R) :
-                                         /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
-                                         /\  m.val = PickValue(B)
-                                         /\  m.round = PickRound(B) + 1)
-                     BY <10>20, <10>21, <10>12
-                  <11>2 (\E R \in Quorums : \E B \in QuorumAnswers(R) :
-                                         /\  AllIdenticalRounds(B)
-                                         /\  m.val \in SuccessorValues(B)
-                                         /\  m.round = PickRound(B) + 1)'
-                     BY <10>13, <11>1, UniformAnswerSuccessorSingularity, QuorumAssumption DEF QuorumAnswers, Answers
-                  <11>4 QED
-                    BY <11>2, <10>14
-                <10>31 CASE ~o.primed
-                  <11>1 (\E R \in Quorums : \E B \in QuorumAnswers(R) :
-                                         /\  AllIdenticalRounds(B)
-                                         /\  m.val \in SuccessorValues(B)
-                                         /\  m.round = PickRound(B) + 1)'
-                     BY <10>30, <10>31, <10>12, <10>13 DEF QuorumAnswers, Answers
-                  <11>3 QED
-                    BY <11>1, <10>14
-                <10>99 QED
-                  BY <10>21, <10>31
-              <8>3
-                QED BY <8>1, <8>2
+                <8>15 m.type = "Offer" /\ m.round # 0 /\ ~m.primed
+                  BY <8>1, <8>13
+                <8>16 o.primed => \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                                       /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
+                                       /\  o.val = PickValue(B)
+                                       /\  o.round = PickRound(B) + 1
+                  BY <3>1, <8>10, <8>12, <8>13
+                <8>17 CASE o.primed
+                  <9>1 (\E R \in Quorums : \E B \in QuorumAnswers(R) :
+                             /\  AllIdenticalRounds(B)
+                             /\  m.val \in SuccessorValues(B)
+                             /\  m.round = PickRound(B) + 1)'
+                    \* When `o' is primed, the source quorum-answer set must be uniform (all identical
+                    \* rounds and values). A uniform set of answers leads to a single successor value,
+                    \* therefore `SuccessorValues(B)' must be a singleton set containing `PickValue(B)'.
+                    BY <8>13, <8>14, <8>16, <8>17, UniformAnswerSuccessorSingularity, QuorumAssumption 
+                       DEF QuorumAnswers, Answers
+                  <9>2 QED
+                    BY <9>1, <8>15
+                <8>18 ~o.primed => \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                                       /\  AllIdenticalRounds(B)
+                                       /\  o.val \in SuccessorValues(B)
+                                       /\  o.round = PickRound(B) + 1
+                  BY <3>1, <8>10, <8>12, <8>13
+                <8>19 CASE ~o.primed
+                  BY <8>13, <8>14, <8>15, <8>18, <8>19 DEF QuorumAnswers, Answers
+                <8>20 QED
+                  BY <8>17, <8>19
+              <7>3
+                QED BY <7>1, <7>2
             <6>4 QED 
               BY <6>1, <6>2, <6>3
           <5>2. (m.type = "Answer" =>
