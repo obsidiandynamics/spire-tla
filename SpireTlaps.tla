@@ -477,6 +477,11 @@ LEMMA NotOfferedInSuffix ==
     BY <1>1, <1>2, NatInduction DEF Rounds
 
 (*****************************************************************************)
+(* Any set of quorum-answers in round `r' overlaps with every other set      *)
+(* in `r' by at least one answer.                                            *)
+(*                                                                           *)
+(* Proof is straightforward by the quorum intersection property and the      *)
+(* constraint that a consenter may vote at most once in any given round.     *)
 (*****************************************************************************)
 LEMMA RoundAnswersOverlap ==
     ConsInv =>
@@ -486,6 +491,8 @@ LEMMA RoundAnswersOverlap ==
   BY QuorumAssumption DEF ConsInv, QuorumAnswers, Answers
 
 (*****************************************************************************)
+(* If a value `v' is chosen in round `r', then only `v' may be offered in    *)
+(* the successor round `r + 1'.                                              *) 
 (*****************************************************************************)
 LEMMA ChosenCarry ==
     TypeOK /\ MsgInv /\ ConsInv =>
@@ -502,11 +509,11 @@ LEMMA ChosenCarry ==
                       o.type = "Offer" /\ o.round = (r + 1) /\ o.val = v2
                PROVE  v1 = v2
     BY DEF ChosenIn, OfferedIn
-  <1>3 \A mmm \in A : mmm.type = "Answer" /\ mmm.lastRound = r /\ mmm.lastPrimed
+  <1>1 \A mmm \in A : mmm.type = "Answer" /\ mmm.lastRound = r /\ mmm.lastPrimed
     BY DEF QuorumAnswers, Answers, AllIdenticalRounds, AllPrimed
-  <1>4 \A mmm \in A : mmm.lastVal = v1
-    BY PrimedRoundQuorumAnswersAreUniform DEF TypeOK, MsgInv, ConsInv
-  <1>5 \A n \in msgs : n.type = "Offer" /\ n.round = r + 1 =>
+  <1>2 \A mmm \in A : mmm.lastVal = v1
+    BY PrimedRoundQuorumAnswersAreUniform
+  <1>3 \A n \in msgs : n.type = "Offer" /\ n.round = r + 1 =>
             /\ n.primed => 
                 \E R \in Quorums : \E B \in QuorumAnswers(R) :
                     /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
@@ -532,12 +539,16 @@ LEMMA ChosenCarry ==
                                 /\  n.round = PickRound(B) + 1
                      PROVE   n.val = v1
       BY DEF MsgInv, Rounds
-    <2>3.CASE n.primed
+    \* Where the next-round `r + 1' offer is primed, the quorum-answers in `r' must
+    \* therefore have been uniform. Because `r' contained the chosen answer `v1', every
+    \* set of quorum-answers in `r' must contain `v1'. Seeing that `B' is uniform, then
+    \* all answers in `B' contain `v1'. 
+    <2>1.CASE n.primed
       <3>1 PICK R \in Quorums : \E B \in QuorumAnswers(R) :
               /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
               /\  n.val = PickValue(B)
               /\  n.round = PickRound(B) + 1
-        BY <2>3
+        BY <2>1
       <3>2 PICK B \in QuorumAnswers(R) : 
               /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
               /\  n.val = PickValue(B)
@@ -552,25 +563,32 @@ LEMMA ChosenCarry ==
       <3>6 \A b \in B : b.type = "Answer" /\ b.lastRound \in Rounds
         BY <3>2 DEF QuorumAnswers, Answers, TypeOK, Messages
       <3>7 PickRound(B) \in Rounds
-        BY <3>2, <3>4, <3>6, PickRoundImage DEF PickRound, Rounds, QuorumAnswers, Answers
+        BY <3>2, <3>4, <3>6, PickRoundImage DEF PickRound
       <3>8 n.round - 1 \in {mmm.lastRound : mmm \in B}
-        BY <2>3, <3>5, <3>2, <3>7 DEF Rounds, Messages, TypeOK
+        BY <2>1, <3>5, <3>2, <3>7 DEF Rounds
       <3>9 \A b \in B : b.lastRound = r
-        BY <2>3, <3>2, <3>3, <3>5, <3>8 DEF Rounds, Messages, TypeOK
+        BY <2>1, <3>2, <3>3, <3>5, <3>8 DEF Rounds
       <3>10 \A a \in A, b \in B : a.lastRound = b.lastRound
-        BY <1>3, <3>9
+        BY <1>1, <3>9
       <3>11 \E a \in A, b \in B : a = b
         BY <3>9, <3>10, RoundAnswersOverlap
       <3>12 \A b \in B : b.lastVal = v1
-        BY <1>4, <3>11, <3>2 DEF AllIdenticalValues
+        BY <1>2, <3>2, <3>11 DEF AllIdenticalValues
       <3>13 QED
-        BY <3>12, <3>2, <3>4, PickValueImage DEF PickValue
-    <2>4 CASE ~n.primed
+        BY <3>2, <3>4, <3>12, PickValueImage DEF PickValue
+    \* When the next-round `r + 1' offer is unprimed, the quorum-answers in `r' may
+    \* contain a mix of values. Because `r' contained the chosen answer `v1', every
+    \* set of quorum-answers in `r' must contain a primed `v1' by lemma 
+    \* `RoundAnswersOverlap'. Furthermore, by
+    \* lemma `SingularityOfPrimedRoundAnswers', no value other than `v1' may be primed
+    \* in `r'. By the image of `SuccessorValues', the sole successor value must
+    \* therefore be `v1'.
+    <2>2 CASE ~n.primed
       <3>1 PICK R \in Quorums : \E B \in QuorumAnswers(R) :
               /\  AllIdenticalRounds(B)
               /\  n.val \in SuccessorValues(B)
               /\  n.round = PickRound(B) + 1
-        BY <2>4
+        BY <2>2
       <3>2 PICK B \in QuorumAnswers(R) :
               /\  AllIdenticalRounds(B)
               /\  n.val \in SuccessorValues(B)
@@ -580,59 +598,66 @@ LEMMA ChosenCarry ==
         BY <3>2, QuorumAssumption DEF QuorumAnswers, Answers
       <3>4 \A b \in B : b.type = "Answer" /\ b.lastRound \in Rounds
         BY <3>2 DEF QuorumAnswers, Answers, TypeOK, Messages
-      <3>8 CASE AllIdenticalRounds(B)
-        \* TODO Cleanup: there is only one case
-        <4>1 \A m1, m2 \in B : m1.lastRound = m2.lastRound
-          BY <3>8 DEF AllIdenticalRounds
-        <4>5 PickRound(B) \in {mmm.lastRound : mmm \in B}
-          BY <3>2, <3>3, PickRoundImage DEF PickRound
-        <4>7 PickRound(B) \in Rounds
-          BY <3>2, <3>3, <3>4, PickRoundImage DEF PickRound, Rounds, QuorumAnswers, Answers
-        <4>8 n.round - 1 \in {mmm.lastRound : mmm \in B}
-          BY <2>4, <4>5, <3>2, <3>4, <3>8 DEF Rounds, Messages, TypeOK
-        <4>9 \A b \in B : b.lastRound = r
-          BY <2>4, <3>2, <3>3, <4>1, <4>8 DEF Rounds, Messages, TypeOK
-        <4>10 \A a \in A, b \in B : a.lastRound = b.lastRound
-          BY <1>3, <4>9
-        <4>11 \E a \in A, b \in B : a = b
-          BY <4>9, <4>10, RoundAnswersOverlap
-        <4>12 \E b \in B : b.lastVal = v1 /\ b.lastPrimed
-          BY <1>4, <4>11 DEF AllPrimed
-        <4>12b PICK p \in B : p.lastVal = v1 /\ p.lastPrimed
-          BY <4>12
-        <4>13 MaxLastRound(B) = r
-          BY <3>3, <4>9 DEF MaxLastRound, SetMax, Rounds
-        <4>14 DEFINE highestRoundAnswers == {b \in B : b.lastRound = MaxLastRound(B)}
-        <4>15 highestRoundAnswers = B
-          BY <4>13, <4>9
-        <4>16a \A b \in B : b \in msgs
-          BY <3>2, <3>1 DEF QuorumAnswers, Answers, Messages, TypeOK
-        <4>16 \A b \in B : b.lastPrimed /\ b.lastRound = r => b.lastVal = v1
-          BY <3>2, <3>4, <4>9, <4>12b, <4>16a, SingularityOfPrimedRoundAnswers
-        <4>17 DEFINE highestRoundPrimedAnswers == {b \in highestRoundAnswers : b.lastPrimed}
-        <4>17b highestRoundPrimedAnswers = {b \in B : b.lastPrimed}
-          BY <4>15
-        <4>18 highestRoundPrimedAnswers # {}
-          BY <4>12, <4>16, <4>17b
-        <4>19 \A mmm \in highestRoundPrimedAnswers : mmm.lastVal = v1
-          BY <4>16, <4>9
-        <4>20 \A v \in SuccessorValues(B) : v = v1
-          BY <4>18, <4>19 DEF SuccessorValues, PickValue
-        <4>99 QED
-          BY <3>2, <4>20
-      <3>99 QED
-        BY <3>2, <3>8
-    <2>5. QED
-      BY <2>3, <2>4
-  <1>99 QED 
-    BY <1>5
+      <3>5 \A m1, m2 \in B : m1.lastRound = m2.lastRound
+        BY <3>2 DEF AllIdenticalRounds
+      <3>6 PickRound(B) \in {mmm.lastRound : mmm \in B}
+        BY <3>2, <3>3, PickRoundImage DEF PickRound
+      <3>7 PickRound(B) \in Rounds
+        BY <3>2, <3>3, <3>4, PickRoundImage DEF PickRound, QuorumAnswers, Answers
+      <3>8 n.round - 1 \in {mmm.lastRound : mmm \in B}
+        BY <2>2, <3>2, <3>4, <3>6 DEF Rounds
+      <3>9 \A b \in B : b.lastRound = r
+        BY <2>2, <3>2, <3>3, <3>5, <3>8 DEF Rounds
+      <3>10 \A a \in A, b \in B : a.lastRound = b.lastRound
+        BY <1>1, <3>9
+      <3>11 \E a \in A, b \in B : a = b
+        BY <3>9, <3>10, RoundAnswersOverlap
+      <3>12 \E b \in B : b.lastVal = v1 /\ b.lastPrimed
+        BY <1>2, <3>11 DEF AllPrimed
+      <3>13 PICK p \in B : p.lastVal = v1 /\ p.lastPrimed
+        BY <3>12
+      <3>14 MaxLastRound(B) = r
+        BY <3>3, <3>9 DEF MaxLastRound, SetMax
+      <3>15 DEFINE highestRoundAnswers == {b \in B : b.lastRound = MaxLastRound(B)}
+      <3>16 highestRoundAnswers = B
+        BY <3>9, <3>14
+      <3>17 \A b \in B : b \in msgs
+        BY <3>1, <3>2 DEF QuorumAnswers, Answers
+      <3>18 \A b \in B : b.lastPrimed /\ b.lastRound = r => b.lastVal = v1
+        BY <3>4, <3>9, <3>13, <3>17, SingularityOfPrimedRoundAnswers
+      <3>19 DEFINE highestRoundPrimedAnswers == {b \in highestRoundAnswers : b.lastPrimed}
+      <3>20 highestRoundPrimedAnswers = {b \in B : b.lastPrimed}
+        BY <3>16
+      <3>21 highestRoundPrimedAnswers # {}
+        BY <3>12, <3>18, <3>20
+      <3>22 \A mmm \in highestRoundPrimedAnswers : mmm.lastVal = v1
+        BY <3>9, <3>18
+      <3>23 \A v \in SuccessorValues(B) : v = v1
+        BY <3>21, <3>22 DEF SuccessorValues, PickValue
+      <3>24 HIDE DEF highestRoundAnswers, highestRoundPrimedAnswers
+      <3>25 QED
+        BY <3>2, <3>23
+    <2>3. QED
+      BY <2>1, <2>2
+  <1>4 QED 
+    BY <1>3
         
 (*****************************************************************************)
-(* Stability of value selection:                                             *)
+(* Stability of value selection.                                             *)
+(*                                                                           *)
 (* For any two rounds `r1' and `r2', where `r2 > r1', if some value `v' is   *)
 (* chosen in `r1' then only `v' may be offered in `r2'.                      *)
+(*                                                                           *)
+(* The proof is assembled in two tranches. First, we prove that if `v' is    *)
+(* chosen in `r1', then only `v' may be offered in `r1 + 1' by lemma         *)
+(* `ChosenCarry'. Second, if `v' is offered in `r1 + 1', then only `v' may   *)
+(* be offered in all future rounds following `r1 + 1'. The latter is         *)
+(* accomplished by rewriting the goal in terms of what cannot be offered,    *)
+(* which is the set `Values \ {v}', and using the inductive lemma            *)
+(* `NotOfferedInSuffix' to project that `Values \ {v}' cannot be offered in  *)
+(* subsequent rounds, leaving only `v' as a candidate value in `r2'.         *)
 (*****************************************************************************)
-LEMMA Stable ==
+LEMMA Stability ==
     TypeOK /\ MsgInv /\ ConsInv =>
         \A r1, r2 \in Rounds, v1, v2 \in Values : r1 < r2 /\ ChosenIn(r1, v1) /\ OfferedIn(r2, v2) 
             => v1 = v2
@@ -697,10 +722,10 @@ LEMMA Consistent == Inv => Consistency
       BY <1>10, <1>2, <2>4
   <1>20 CASE m.lastRound < n.lastRound
     <2>99 QED
-      BY <1>1, <1>20, Stable, ChosenFromOffer DEF ChosenIn, OfferedIn, Rounds, MsgInv, TypeOK
+      BY <1>1, <1>20, Stability, ChosenFromOffer DEF ChosenIn, OfferedIn, Rounds, MsgInv, TypeOK
   <1>30 CASE m.lastRound > n.lastRound
     <2>99 QED
-      BY <1>1, <1>30, Stable, ChosenFromOffer DEF ChosenIn, OfferedIn, Rounds, MsgInv, TypeOK
+      BY <1>1, <1>30, Stability, ChosenFromOffer DEF ChosenIn, OfferedIn, Rounds, MsgInv, TypeOK
   <1>9 QED
     BY <1>1, <1>10, <1>20, <1>30 DEF Rounds
 
