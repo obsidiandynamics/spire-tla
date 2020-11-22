@@ -2,84 +2,56 @@
 EXTENDS Spire, TLAPS, NaturalsInduction, FiniteSetTheorems
 
 (*****************************************************************************)
+(* No quorum may be empty.                                                   *)
 (*****************************************************************************)
 LEMMA QuorumNonEmpty == \A Q \in Quorums : Q # {}
   BY QuorumAssumption
 
 (*****************************************************************************)
+(* The symbol `None' is not in the set of `Values'.                          *)
 (*****************************************************************************)  
 LEMMA NoneNotAValue == None \notin Values
   BY NoSetContainsEverything DEF None
 
 (*****************************************************************************)
-(*****************************************************************************)  
-LEMMA QuorumAnswerHasConsenter ==
-    \A Q \in Quorums : \A A \in QuorumAnswers(Q) : A # {} => \E a \in A : a.cons \in Q
-  BY DEF QuorumAnswers, Answers
-
-(*****************************************************************************)
+(* For a superset of quorum-answers obtained by `QuorumAnswers(Q)', each     *)
+(* set of answers `A' is non-empty if and only if `Q' is non-empty.          *)
 (*****************************************************************************)  
 LEMMA AnswersNonEmpty ==
     \A Q \in Quorums : \A A \in QuorumAnswers(Q) : Q # {} <=> A # {}
   BY DEF QuorumAnswers, Answers
 
 (*****************************************************************************)
+(* The image of `PickRound(M)' is a single element in                        *)
+(* `{m.lastRound : m \in M}' if `M' is a non-empty set of messages.          *)
 (*****************************************************************************)  
 LEMMA PickRoundImage ==
     \A M \in SUBSET Messages : M # {} => PickRound(M) \in {m.lastRound : m \in M}
   BY DEF PickRound, Messages
 
 (*****************************************************************************)
+(* The image of `PickValue(M)' is a single element in                        *)
+(* `{m.lastVal : m \in M}' if `M' is a non-empty set of messages.            *)
 (*****************************************************************************)  
 LEMMA PickValueImage ==
     \A M \in SUBSET Messages : M # {} => PickValue(M) \in {m.lastVal : m \in M}
   BY DEF PickValue, Messages
   
-
+(*****************************************************************************)
+(* Determines whether the given finte set `S' of naturals has an element     *)
+(* that is greater or equal to all other elements.                           *)
+(*****************************************************************************)  
 HasMax(S) ==
     S \in SUBSET Nat /\ S # {} => \E n1 \in S : \A n2 \in S : n1 >= n2
 
 (*****************************************************************************)
-(*****************************************************************************) 
-LEMMA AdditionHasMax ==
-    \A S \in SUBSET Nat, x \in Nat : x \notin S /\ HasMax(S)
-        => HasMax(S \union {x})
-  BY DEF Nat, HasMax
-\*  
-\*   
-\*LEMMA AdditionHasMax2 ==
-\*    ASSUME NEW S, NEW x, x \notin S, HasMax(S)
-\*    PROVE HasMax(S \union {x}) \*/\ IsFiniteSet(S \union {x})
-\*  BY DEF HasMax
-\*
-\*LEMMA Test ==
-\*  ASSUME NEW T \in SUBSET Nat, NEW x \in Nat, HasMax(T), x \notin T \*, IsFiniteSet(T)
-\*       PROVE  HasMax(T \cup {x})
-\*    BY AdditionHasMax2
-
-\*LEMMA AllHaveMax ==
-\*  ASSUME NEW S \in SUBSET Nat,
-\*         S # {},
-\*         IsFiniteSet(S),
-\*         HasMax({})
-\*  PROVE  HasMax(S)
-\*\*  <1> DEFINE Q(T) == T == HasMax(T)
-\*  <1> DEFINE Q(T) == T \in SUBSET Nat /\ T # {} => \E n1 \in S : \A n2 \in S : n1 >= n2
-\*  <1> SUFFICES Q(S)
-\*    OBVIOUS
-\*  <1>1 Q({})
-\*    BY DEF HasMax
-\*  <1>10 IsFiniteSet({})
-\*  <1>2 \A x : (x \notin S /\ Q(S)) => Q(S \union {x}) \*/\ IsFiniteSet(S \union {x})
-\*    BY AdditionHasMax DEF HasMax
-\*  <1>3 ASSUME NEW R, NEW x, Q(R), x \notin R \*, IsFiniteSet(T)
-\*       PROVE  Q(R \cup {x})
-\*    BY AdditionHasMax2 DEF HasMax
-\*  <1> HIDE DEF Q
-\*  <1> QED
-\*    BY <1>1, <1>3, FS_Induction, IsaM("blast") DEF HasMax
-
-(*****************************************************************************)
+(* Every finite set of naturals `S' has a maximum within `S' — an element    *)
+(* that is greater than all other elements in `S'.                           *)
+(*                                                                           *)
+(* Proof is by finite set induction: the predicate `HasMax({})' holds, and   *)
+(* the addition of a natural number `x' to some set of naturals `R', where   *)
+(* `x' is not already in `R' and `HasMax(R)' holds, preserves                *)
+(* `HasMax(R \union {x})'.                                                   *)
 (*****************************************************************************)
 LEMMA AllHaveMax ==
   ASSUME NEW S \in SUBSET Nat,
@@ -87,71 +59,21 @@ LEMMA AllHaveMax ==
          IsFiniteSet(S),
          HasMax({})
   PROVE  HasMax(S)
-  <1> DEFINE Q(T) == T \in SUBSET Nat /\ T # {} => \E n1 \in T : \A n2 \in T : n1 >= n2
+  <1> DEFINE Q(T) == HasMax(T)
   <1> SUFFICES Q(S)
     BY DEF HasMax
   <1>1 Q({})
     OBVIOUS
   <1>3 ASSUME NEW R, NEW x, Q(R), x \notin R
        PROVE  Q(R \cup {x})
-    <2> SUFFICES ASSUME (R \cup {x}) \in SUBSET Nat /\ (R \cup {x}) # {}
-                 PROVE  \E n1 \in R \cup {x} : \A n2 \in R \cup {x} : n1 >= n2
-      BY DEF Q
-    <2>1 CASE R \in SUBSET Nat
-      <3>1 \A G \in SUBSET Nat, y \in Nat : y \notin G /\ HasMax(G)
-              => HasMax(G \union {y})
-        BY AdditionHasMax
-      <3>99 QED
-        BY <1>3, <2>1, <3>1 DEF HasMax, Nat
-    <2>2 CASE R \notin SUBSET Nat
-      BY <2>2
-    <2>99 QED
-      BY <2>1, <2>2
+    BY <1>3 DEF HasMax
   <1> HIDE DEF Q
   <1> QED
     BY <1>1, <1>3, FS_Induction, IsaM("blast") DEF HasMax    
-    
-    
-\*SetMax(S) == CHOOSE t \in S : \A s \in S : t >= s    
-\*
-\*LEMMA MaxIntegers ==
-\*  ASSUME NEW S \in SUBSET Int, S # {}, IsFiniteSet(S)
-\* PROVE  /\ setMax(S) \in S
-\*        /\ \A yy \in S : yy <= setMax(S)
-\*<1>. DEFINE P(T) == T \in SUBSET Int /\ T # {} => \E xx \in T : \A yy \in T : yy <= xx
-\*<1>1. P({})
-\* OBVIOUS
-\*<1>2. ASSUME NEW T, NEW xx, P(T), xx \notin T
-\*     PROVE  P(T \cup {xx})
-\* <2>. HAVE T \cup {xx} \in SUBSET Int
-\* <2>1. CASE \A yy \in T : yy <= xx
-\*   BY <2>1, Isa
-\* <2>2. CASE \E yy \in T : ~(yy <= xx)
-\*   <3>. T # {}
-\*     BY <2>2
-\*   <3>1. PICK yy \in T : \A zz \in T : zz <= yy
-\*     BY <1>2
-\*   <3>2. xx <= yy
-\*     BY <2>2, <3>1
-\*   <3>3. QED  BY <3>1, <3>2
-\* <2>. QED  BY <2>1, <2>2
-\*<1>. HIDE DEF P
-\*<1>3. P(S)  BY <1>1, <1>2, FS_Induction, IsaM("blast")
-\*<1>. QED  BY <1>3, Zenon DEF setMax, P  
-    
-    
-  
-\*LEMMA SetMaxImage ==
-\*    \A S \in Nat : S # {} => SetMax(S) \in Nat
-\*  <1> SUFFICES ASSUME NEW S \in Nat,
-\*                      S # {}
-\*               PROVE  SetMax(S) \in Nat
-\*    OBVIOUS
-\*  <1> QED
-\*    BY AllHaveMax DEF SetMax
-\*    
 
 (*****************************************************************************)
+(* The image of `MaxLastRound(M)' is a single element in                     *)
+(* `{m.lastRound : m \in M}' if `M' is a non-empty set of messages.          *)
 (*****************************************************************************)  
 LEMMA MaxLastRoundImage ==
     \A M \in SUBSET Messages : M # {} => MaxLastRound(M) \in {m.lastRound : m \in M}
@@ -160,30 +82,14 @@ LEMMA MaxLastRoundImage ==
                PROVE  MaxLastRound(M) \in {m.lastRound : m \in M}
     OBVIOUS
   <1> USE DEF MaxLastRound
-\*  <1>1 \A m \in M : m.lastRound \in Rounds
-\*    BY DEF Messages, Rounds
-\*  <1>2 \E m \in M : m.lastRound \in Rounds
-\*    BY <1>1
-\*  <1>3 \A m1, m2 \in M : m1.lastRound > m2.lastRound \/ m1.lastRound < m2.lastRound \/ m1.lastRound = m2.lastRound
-\*    BY <1>1 DEF Rounds
-\*  <1>9 \E m1 \in M : \A m2 \in M : m2.lastRound < m1.lastRound \/ m2.lastRound = m1.lastRound
-\*    BY <1>1, <1>2, <1>3 DEF Messages, Rounds
-\*  <1>10 \E m1 \in M : \A m2 \in M : m2.lastRound <= m1.lastRound
-\*    BY <1>1, <1>2, <1>3, AllHaveMax DEF Messages, Rounds
-\*\*  <1>11 PICK m1 \in M : \A m2 \in M : m2.lastRound <= m1.lastRound
-\*\*    BY <1>10
-\*\*  <1>20 QED
-\*\*    BY AllHaveMax DEF MaxLastRound, Rounds
-\*  <1>19 DEFINE S == {m.lastRound : m \in M}
-\*\*  <1>20 MaxLastRound(M) = SetMax(S)
-\*\*    BY DEF MaxLastRound
-  <1>21 MaxLastRound(M) \in {m.lastRound : m \in M}
+  <1>1 MaxLastRound(M) \in {m.lastRound : m \in M}
     BY AllHaveMax DEF MaxLastRound, SetMax
-  <1>99 QED
-    BY <1>21
+  <1>2 QED
+    BY <1>1
   
-
 (*****************************************************************************)
+(* The image of `MaxLastRound(M)' is in the powerset of                      *)
+(* `{m.lastVal : m \in M}' if `M' is a non-empty set of messages.            *)
 (*****************************************************************************)  
 LEMMA SuccessorValuesImage ==
     \A M \in SUBSET Messages : M # {} => SuccessorValues(M) \in SUBSET {m.lastVal : m \in M}
@@ -202,28 +108,32 @@ LEMMA SuccessorValuesImage ==
   <1>1 DEFINE highestRound == MaxLastRound(M)
   <1>2 DEFINE highestRoundAnswers == {m \in M : m.lastRound = highestRound}
   <1>3 DEFINE highestRoundPrimedAnswers == {m \in highestRoundAnswers : m.lastPrimed}
-  <1>5 \A a \in highestRoundAnswers : a \in M
+  <1>4 \A a \in highestRoundAnswers : a \in M
     OBVIOUS
-  <1>80 CASE highestRoundPrimedAnswers # {}
-    <2>99 QED
-      BY <1>80, PickValueImage DEF PickValue
-  <1>90 CASE highestRoundPrimedAnswers = {} 
-    <2>99 QED
-      BY <1>90
-  <1>99 QED
-    BY <1>80, <1>90
+  <1>5 CASE highestRoundPrimedAnswers # {}
+    BY <1>5, PickValueImage DEF PickValue
+  <1>6 CASE highestRoundPrimedAnswers = {} 
+    BY <1>6
+  <1>7 QED
+    BY <1>5, <1>6
 
 (*****************************************************************************)
+(* A uniform (same round number, same value), non-empty set of answers       *)
+(* leads to a single successor value.                                        *)
 (*****************************************************************************)
-\* A uniform set of answers leads to a single successor value.
-LEMMA UniformAnswerSuccessorSingularity ==
+LEMMA SingularityOfSuccessorsToUniformAnswers ==
     \A M \in SUBSET Messages : M # {} /\ AllIdenticalRounds(M) /\ AllIdenticalValues(M) 
         => SuccessorValues(M) = {PickValue(M)}
     BY DEF SuccessorValues, AllIdenticalRounds, AllIdenticalValues, MaxLastRound, SetMax, PickValue
 
 (*****************************************************************************)
+(* A primed offer bearing a value `v' in round `r' implies that a uniform    *)
+(* set of answers exists in `r-1' for `v' for at least one complete quorum.  *)
+(*                                                                           *)
+(* The proof follows from `MsgInv' for the case                              *)
+(* `\A m \in msgs : m.type = "Offer" /\ m.round # 0 /\ m.primed'.            *)
 (*****************************************************************************)
-LEMMA PrimedOfferFollowsDominantAnswer ==
+LEMMA PrimedOfferFollowsUniformAnswers ==
     TypeOK /\ MsgInv => 
         \A o \in msgs : o.type = "Offer" /\ o.primed =>
             \E Q \in Quorums : \E A \in QuorumAnswers(Q):
@@ -234,64 +144,56 @@ LEMMA PrimedOfferFollowsDominantAnswer ==
                PROVE  \E Q \in Quorums : \E A \in QuorumAnswers(Q):
                           \A a \in A : a.lastRound = o.round - 1 /\ a.lastVal = o.val
     OBVIOUS
-  <1>1 o.round # 0
-    BY DEF MsgInv
-  <1>11 o.round \in Rounds
-    BY DEF MsgInv, Messages, TypeOK
-  <1>2 \E Q \in Quorums : \E A \in QuorumAnswers(Q) :
+  <1>1 \E Q \in Quorums : \E A \in QuorumAnswers(Q) :
           /\  A # {}
           /\  AllIdenticalRounds(A) /\ AllIdenticalValues(A)
           /\  o.val = PickValue(A)
           /\  o.round = PickRound(A) + 1
     BY AnswersNonEmpty, QuorumAssumption DEF MsgInv
-  <1>3 \E Q \in Quorums : \E A \in QuorumAnswers(Q) :
+  <1>2 \E Q \in Quorums : \E A \in QuorumAnswers(Q) :
           /\  A # {}
           /\  AllIdenticalRounds(A) /\ AllIdenticalValues(A)
           /\  o.val = PickValue(A)
           /\  o.round - 1 = PickRound(A)
-    BY <1>2, PickRoundImage DEF Messages, TypeOK, QuorumAnswers, Answers, Rounds
-  <1>40 PICK R \in Quorums : \E A \in QuorumAnswers(R) :
+    BY <1>1, PickRoundImage DEF Messages, TypeOK, QuorumAnswers, Answers, Rounds
+  <1>3 PICK R \in Quorums : \E A \in QuorumAnswers(R) :
           /\  A # {}
           /\  AllIdenticalRounds(A) /\ AllIdenticalValues(A)
           /\  o.val = PickValue(A)
           /\  o.round - 1 = PickRound(A)
-    BY <1>3
-  <1>400 PICK B \in QuorumAnswers(R) :
+    BY <1>2
+  <1>4 PICK B \in QuorumAnswers(R) :
           /\  B # {}
           /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
           /\  o.val = PickValue(B)
           /\  o.round - 1 = PickRound(B)
-    BY <1>3, <1>40
-  <1>401  /\  B # {}
-          /\  AllIdenticalRounds(B)
-          /\  o.round - 1 = PickRound(B)
-          /\  PickRound(B) \in {a.lastRound : a \in B}
-          /\  (o.round - 1) \in {a.lastRound : a \in B}
-          /\  \A a \in B : a.lastRound = o.round - 1
-    BY <1>11, <1>400, PickRoundImage DEF Rounds, AllIdenticalRounds, PickRound, Messages, TypeOK, QuorumAnswers, Answers
-  <1>402  /\  B # {}
-          /\  AllIdenticalValues(B)
-          /\  o.val = PickValue(B)
-          /\  o.val \in {a.lastVal : a \in B}
-          /\  \A a \in B : a.lastVal = o.val
-    BY <1>11, <1>400, PickValueImage DEF AllIdenticalValues, PickRound, Messages, TypeOK, QuorumAnswers, Answers
-  <1>8 \E Q \in Quorums : \E A \in QuorumAnswers(Q): 
+    BY <1>3
+  <1>5  /\  B # {}
+        /\  AllIdenticalRounds(B)
+        /\  PickRound(B) \in {a.lastRound : a \in B}
+        /\  o.round - 1 \in {a.lastRound : a \in B}
+        /\  \A a \in B : a.lastRound = o.round - 1
+    BY <1>4, PickRoundImage DEF AllIdenticalRounds, TypeOK, QuorumAnswers, Answers
+  <1>6  /\  B # {}
+        /\  AllIdenticalValues(B)
+        /\  o.val = PickValue(B)
+        /\  o.val \in {a.lastVal : a \in B}
+        /\  \A a \in B : a.lastVal = o.val
+    BY <1>4, PickValueImage DEF AllIdenticalValues, TypeOK, QuorumAnswers, Answers
+  <1>7 \E Q \in Quorums : \E A \in QuorumAnswers(Q): 
           /\ \A a \in A : a.lastRound = o.round - 1 
           /\ \A a \in A : a.lastVal = o.val
-    BY <1>401, <1>402
-  <1>99 QED
-    BY <1>8
+    BY <1>5, <1>6
+  <1>8 QED
+    BY <1>7
   
 (*****************************************************************************)
-(*****************************************************************************)    
-LEMMA QuorumAnswerHasConsenters ==
-    \A Q \in Quorums : \A A \in QuorumAnswers(Q) : \A c \in Q : \E a \in A : a.cons = c
-  BY DEF QuorumAnswers, Answers
-  
-\* All primed answers in a given round must refer to the same value.
+(* All primed answers in a given round must refer to the same value.         *)
+(*                                                                           *)
+(* The proof follows from a combination of `PrimedOfferFollowsUniformAnswer' *)
+(* and the quorum intersection property.                                     *)
 (*****************************************************************************)
-(*****************************************************************************)
-LEMMA IdentityOfPrimedRoundAnswers ==
+LEMMA SingularityOfPrimedRoundAnswers ==
     TypeOK /\ MsgInv /\ ConsInv => 
         \A m1, m2 \in msgs : 
             /\ m1.type = "Answer" /\ m1.lastPrimed 
@@ -305,49 +207,47 @@ LEMMA IdentityOfPrimedRoundAnswers ==
                       m1.lastRound = m2.lastRound
                PROVE  m1.lastVal = m2.lastVal
     OBVIOUS
-  <1>21 \E o \in msgs : o.type = "Offer" /\ o.round = m1.lastRound /\ o.primed /\ o.val = m1.lastVal
+  <1>1 \E o \in msgs : o.type = "Offer" /\ o.round = m1.lastRound /\ o.primed /\ o.val = m1.lastVal
     BY DEF MsgInv
-  <1>22 \E o \in msgs : o.type = "Offer" /\ o.round = m2.lastRound /\ o.primed /\ o.val = m2.lastVal
+  <1>2 \E o \in msgs : o.type = "Offer" /\ o.round = m2.lastRound /\ o.primed /\ o.val = m2.lastVal
     BY DEF MsgInv
-  <1>400 PICK o1 \in msgs : o1.type = "Offer" /\ o1.round = m1.lastRound /\ o1.primed /\ o1.val = m1.lastVal
-    BY <1>21
-  <1>402 PICK o2 \in msgs : o2.type = "Offer" /\ o2.round = m2.lastRound /\ o2.primed /\ o2.val = m2.lastVal
-    BY <1>22
-  <1>310 \E R \in Quorums : \E B \in QuorumAnswers(R) :
-            \A a \in B : a.lastRound = o1.round - 1 /\ a.lastVal = o1.val
-    BY <1>400, <1>21, PrimedOfferFollowsDominantAnswer
-  <1>312 \E R \in Quorums : \E B \in QuorumAnswers(R) :
-            \A a \in B : a.lastRound = o2.round - 1 /\ a.lastVal = o2.val
-    BY <1>402, <1>22, PrimedOfferFollowsDominantAnswer
-  <1>31 \E R \in Quorums : \E B \in QuorumAnswers(R) :
-            \A a \in B : a.lastRound = m1.lastRound - 1 /\ a.lastVal = m1.lastVal /\ a.type = "Answer" \*/\ a.cons \in R
-    BY <1>21, <1>310, <1>400 (*QuorumAnswerHasConsenters*) DEF QuorumAnswers, Answers\*, Messages, TypeOK
-  <1>311 PICK R1 \in Quorums : \E B \in QuorumAnswers(R1) :
-            \A a \in B : a.lastRound = m1.lastRound - 1 /\ a.lastVal = m1.lastVal /\ a.cons \in R1
-    BY <1>31, QuorumAnswerHasConsenters DEF QuorumAnswers, Answers
-  <1>32 \E R \in Quorums : \E B \in QuorumAnswers(R) :
-            \A a \in B : a.lastRound = m1.lastRound - 1 /\ a.lastVal = m2.lastVal /\ a.type = "Answer" \*/\ a.cons \in R
-    BY <1>22, <1>312, <1>402 (*QuorumAnswerHasConsenters*) DEF QuorumAnswers, Answers \*, Messages, TypeOK
-  <1>321 PICK R2 \in Quorums : \E B \in QuorumAnswers(R2) :
-            \A a \in B : a.lastRound = m1.lastRound - 1 /\ a.lastVal = m2.lastVal /\ a.cons \in R2
-    BY <1>32, QuorumAnswerHasConsenters DEF QuorumAnswers, Answers
-  <1>33 PICK c \in Consenters : c \in R1 /\ c \in R2
-    BY <1>311, <1>321, QuorumAssumption
-  <1>40 R1 # {} /\ R2 # {}
-    BY QuorumAssumption
-  <1>41 \E B \in QuorumAnswers(R1) : 
-      \E a \in B : a.lastRound = m1.lastRound - 1 /\ a.lastVal = m1.lastVal /\ a.cons = c
-    BY <1>40, <1>311, <1>33, QuorumAnswerHasConsenters
-  <1>42 \E B \in QuorumAnswers(R2) : 
-      \E a \in B : a.lastRound = m1.lastRound - 1 /\ a.lastVal = m2.lastVal /\ a.cons = c
-    BY <1>40, <1>321, <1>33, QuorumAnswerHasConsenters
-  <1>99 QED
-    BY <1>41, <1>42 DEF QuorumAnswers, Answers, ConsInv
+  <1>3 PICK o1 \in msgs : o1.type = "Offer" /\ o1.round = m1.lastRound /\ o1.primed /\ o1.val = m1.lastVal
+    BY <1>1
+  <1>4 PICK o2 \in msgs : o2.type = "Offer" /\ o2.round = m2.lastRound /\ o2.primed /\ o2.val = m2.lastVal
+    BY <1>2
+  <1>5 \E R \in Quorums : \E B \in QuorumAnswers(R) :
+          \A a \in B : a.lastRound = o1.round - 1 /\ a.lastVal = o1.val
+    BY <1>1, <1>3, PrimedOfferFollowsUniformAnswers
+  <1>6 \E R \in Quorums : \E B \in QuorumAnswers(R) :
+          \A a \in B : a.lastRound = o2.round - 1 /\ a.lastVal = o2.val
+    BY <1>2, <1>4, PrimedOfferFollowsUniformAnswers
+  <1>7 \E R \in Quorums : \E B \in QuorumAnswers(R) :
+           \A a \in B : a.lastRound = m1.lastRound - 1 /\ a.lastVal = m1.lastVal /\ a.type = "Answer"
+    BY <1>1, <1>3, <1>5 DEF QuorumAnswers, Answers
+  <1>8 PICK R1 \in Quorums : \E B \in QuorumAnswers(R1) :
+          \A a \in B : a.lastRound = m1.lastRound - 1 /\ a.lastVal = m1.lastVal /\ a.cons \in R1
+    BY <1>7 DEF QuorumAnswers, Answers
+  <1>9 \E R \in Quorums : \E B \in QuorumAnswers(R) :
+           \A a \in B : a.lastRound = m1.lastRound - 1 /\ a.lastVal = m2.lastVal /\ a.type = "Answer"
+    BY <1>2, <1>4, <1>6 DEF QuorumAnswers, Answers
+  <1>10 PICK R2 \in Quorums : \E B \in QuorumAnswers(R2) :
+           \A a \in B : a.lastRound = m1.lastRound - 1 /\ a.lastVal = m2.lastVal /\ a.cons \in R2
+    BY <1>9 DEF QuorumAnswers, Answers
+  <1>11 PICK c \in Consenters : c \in R1 /\ c \in R2
+    BY <1>8, <1>10, QuorumAssumption
+  <1>12 \E B \in QuorumAnswers(R1) : \E a \in B : 
+            a.lastRound = m1.lastRound - 1 /\ a.lastVal = m1.lastVal /\ a.cons = c
+    BY <1>8, <1>11 DEF QuorumAnswers, Answers
+  <1>13 \E B \in QuorumAnswers(R2) : \E a \in B : 
+            a.lastRound = m1.lastRound - 1 /\ a.lastVal = m2.lastVal /\ a.cons = c
+    BY <1>10, <1>11 DEF QuorumAnswers, Answers
+  <1>14 QED
+    BY <1>12, <1>13 DEF QuorumAnswers, Answers, ConsInv
   
-\* If all answers for a given round are primed, then they must refer to the same value.
 (*****************************************************************************)
+(* A set of quorum-answers of primed values for identical rounds is uniform. *)
 (*****************************************************************************)
-LEMMA SingularPrimedRoundQuorumAnswer ==
+LEMMA PrimedRoundQuorumAnswersAreUniform ==
     TypeOK /\ MsgInv /\ ConsInv => 
         \A Q \in Quorums : \A A \in QuorumAnswers(Q) : 
             AllPrimed(A) /\ AllIdenticalRounds(A) => \A m1, m2 \in A : m1.lastVal = m2.lastVal
@@ -364,8 +264,11 @@ LEMMA SingularPrimedRoundQuorumAnswer ==
        /\ m1.lastRound = m2.lastRound
     BY DEF QuorumAnswers, Answers, AllPrimed, AllIdenticalRounds
   <1> QED
-    BY <1>1, IdentityOfPrimedRoundAnswers
+    BY <1>1, SingularityOfPrimedRoundAnswers
 
+(*****************************************************************************)
+(* Whether the value `v' was chosen in round `r'.                            *)
+(*****************************************************************************) 
 ChosenIn(r, v) ==  
     \E Q \in Quorums :
         \E A \in QuorumAnswers(Q) :
@@ -373,16 +276,27 @@ ChosenIn(r, v) ==
             /\  AllPrimed(A)
             /\  \E m \in A : m.lastVal = v /\ m.lastRound = r
             
+(*****************************************************************************)
+(* Whether the set of values `V' was not among the offers in round `r'.      *)
+(*****************************************************************************) 
 NotOfferedIn(r, V) ==
     ~\E m \in msgs : m.type = "Offer" /\ m.round = r /\ m.val \in V
 
+(*****************************************************************************)
+(* Whether the value `v' was offered in round `r'.                           *)
+(*****************************************************************************) 
 OfferedIn(r, v) ==
     \E o \in msgs : o.type = "Offer" /\ o.round = r /\ o.val = v
     
+(*****************************************************************************)
+(* Whether an answer in round `r' referred to the value `v'.                 *)
+(*****************************************************************************) 
 AnsweredIn(r, v) ==
     \E o \in msgs : o.type = "Answer" /\ o.lastRound = r /\ o.lastVal = v
 
 (*****************************************************************************)
+(* A value that was chosen in a round must be among those values that were   *)
+(* offered in that round.                                                    *)
 (*****************************************************************************)    
 LEMMA ChosenFromOffer ==
     MsgInv =>
@@ -405,8 +319,10 @@ LEMMA ChosenFromOffer ==
     BY <1>1, <1>2 DEF OfferedIn
 
 (*****************************************************************************)
+(* An offer in a non-zero round `r' must source its value from an answer     *)
+(* in `r - 1'.                                                               *)
 (*****************************************************************************)
-LEMMA OfferFromPreviousRoundAnswer ==
+LEMMA ValuePropagation ==
     TypeOK /\ MsgInv =>
         \A r \in Rounds, v \in Values : r # 0 /\ OfferedIn(r, v) => AnsweredIn(r - 1, v)
   <1> SUFFICES ASSUME MsgInv, TypeOK,
@@ -416,7 +332,7 @@ LEMMA OfferFromPreviousRoundAnswer ==
                       o.type = "Offer" /\ o.round = r /\ o.val = v
                PROVE  AnsweredIn(r - 1, v)
     BY DEF OfferedIn
-  <1>5 \A n \in msgs : n.type = "Offer" /\ n.round = r /\ n.val = v =>
+  <1>1 \A n \in msgs : n.type = "Offer" /\ n.round = r /\ n.val = v =>
             /\ n.primed => 
                 \E R \in Quorums : \E B \in QuorumAnswers(R) :
                     /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
@@ -442,12 +358,12 @@ LEMMA OfferFromPreviousRoundAnswer ==
                                 /\  n.round = PickRound(B) + 1
                      PROVE \E a \in msgs : a.type = "Answer" /\ a.lastRound = r - 1 /\ a.lastVal = v
       BY DEF MsgInv, Rounds
-    <2>3.CASE n.primed
+    <2>1.CASE n.primed
       <3>1 PICK R \in Quorums : \E B \in QuorumAnswers(R) :
               /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
               /\  n.val = PickValue(B)
               /\  n.round = PickRound(B) + 1
-        BY <2>3
+        BY <2>1
       <3>2 PICK B \in QuorumAnswers(R) : 
               /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
               /\  n.val = PickValue(B)
@@ -462,21 +378,21 @@ LEMMA OfferFromPreviousRoundAnswer ==
       <3>6 \A b \in B : b.type = "Answer" /\ b.lastRound \in Rounds
         BY <3>2 DEF QuorumAnswers, Answers, TypeOK, Messages
       <3>7 PickRound(B) \in Rounds
-        BY <3>2, <3>4, <3>6, PickRoundImage DEF PickRound, Rounds, QuorumAnswers, Answers
+        BY <3>2, <3>4, <3>6, PickRoundImage DEF PickRound
       <3>8 n.round - 1 \in {mmm.lastRound : mmm \in B}
-        BY <3>5, <3>2, <3>7 DEF Rounds, Messages, TypeOK
+        BY <3>5, <3>2, <3>7 DEF Rounds
       <3>9 \A b \in B : b.lastRound = r - 1
-        BY <3>2, <3>3, <3>5, <3>8 DEF Rounds, Messages, TypeOK
+        BY <3>2, <3>3, <3>5, <3>8 DEF Rounds
       <3>10 \E b \in B : b.lastVal = n.val
         BY <3>2, <3>4, PickValueImage DEF PickValue
       <3>11 QED
         BY <3>9, <3>10 DEF QuorumAnswers, Answers
-    <2>4 CASE ~n.primed
+    <2>2 CASE ~n.primed
       <3>1 PICK R \in Quorums : \E B \in QuorumAnswers(R) :
               /\  AllIdenticalRounds(B)
               /\  n.val \in SuccessorValues(B)
               /\  n.round = PickRound(B) + 1
-        BY <2>4
+        BY <2>2
       <3>2 PICK B \in QuorumAnswers(R) :
               /\  AllIdenticalRounds(B)
               /\  n.val \in SuccessorValues(B)
@@ -491,23 +407,27 @@ LEMMA OfferFromPreviousRoundAnswer ==
       <3>6 \A b \in B : b.type = "Answer" /\ b.lastRound \in Rounds
         BY <3>2 DEF QuorumAnswers, Answers, TypeOK, Messages
       <3>7 PickRound(B) \in Rounds
-        BY <3>2, <3>4, <3>6, PickRoundImage DEF PickRound, Rounds, QuorumAnswers, Answers
+        BY <3>2, <3>4, <3>6, PickRoundImage DEF PickRound, QuorumAnswers, Answers
       <3>8 n.round - 1 \in {mmm.lastRound : mmm \in B}
-        BY <3>5, <3>2, <3>7 DEF Rounds, Messages, TypeOK
+        BY <3>5, <3>2, <3>7 DEF Rounds
       <3>9 \A b \in B : b.lastRound = r - 1
-        BY <3>2, <3>3, <3>5, <3>8 DEF Rounds, Messages, TypeOK
-      <3>9b \A b \in B : b \in Messages
+        BY <3>2, <3>3, <3>8
+      <3>10 \A b \in B : b \in Messages
         BY <3>2 DEF TypeOK, QuorumAnswers, Answers
-      <3>10 n.val \in {b.lastVal : b \in B}
-         BY <3>2, <3>4, <3>9b, SuccessorValuesImage DEF SuccessorValues
-      <3>11 QED
-        BY <3>9, <3>10 DEF QuorumAnswers, Answers
-    <2>99 QED
-      BY <2>3, <2>4
-  <1>99 QED
-    BY <1>5 DEF AnsweredIn
+      <3>11 n.val \in {b.lastVal : b \in B}
+         BY <3>2, <3>4, <3>10, SuccessorValuesImage
+      <3>12 QED
+        BY <3>9, <3>11 DEF QuorumAnswers, Answers
+    <2>3 QED
+      BY <2>1, <2>2
+  <1>2 QED
+    BY <1>1 DEF AnsweredIn
 
 (*****************************************************************************)
+(* If a set of values `V' is not offered in round `r', then it is also not   *)
+(* offered in `r + 1'. This is a set-oriented variant of                     *)
+(* `ValuePropagation' that is used as the basis for an induction proof of    *)
+(* of `NotOfferedInSuffix'.                                                  *)
 (*****************************************************************************)
 LEMMA NotOfferedInCarry ==
     TypeOK /\ MsgInv =>
@@ -522,20 +442,22 @@ LEMMA NotOfferedInCarry ==
     OBVIOUS
   <1>3 ~\E a \in msgs : a.type = "Answer" /\ a.lastRound = r /\ a.lastVal \in V
     BY <1>2 DEF MsgInv
-  <1>3b \A a \in msgs : a.type = "Answer" /\ a.lastRound = r => a.lastVal \notin V
+  <1>4 \A a \in msgs : a.type = "Answer" /\ a.lastRound = r => a.lastVal \notin V
     BY <1>3
-  <1>4 \A o \in msgs : o.type = "Offer" /\ o.round = r + 1 => 
-            \E a \in msgs : a.type = "Answer" /\ a.lastRound = r /\ a.lastVal = o.val
-    BY OfferFromPreviousRoundAnswer DEF OfferedIn, AnsweredIn, Messages, TypeOK
-  <1>4b \A o \in msgs : o.type = "Offer" /\ o.round = r + 1 => 
-            \E a \in msgs : a.type = "Answer" /\ a.lastRound = r /\ a.lastVal = o.val /\ a.lastVal \notin V
-    BY <1>4, <1>3b
-  <1>8 \A o \in msgs : o.type = "Offer" /\ o.round = r + 1 => o.val \notin V
-    BY <1>3, <1>4b DEF MsgInv, Rounds, Messages, TypeOK
-  <1>99 QED
-    BY <1>8  
+  <1>5 \A o \in msgs : o.type = "Offer" /\ o.round = r + 1 => 
+           \E a \in msgs : a.type = "Answer" /\ a.lastRound = r /\ a.lastVal = o.val
+    BY ValuePropagation DEF OfferedIn, AnsweredIn, Messages, TypeOK
+  <1>6 \A o \in msgs : o.type = "Offer" /\ o.round = r + 1 => 
+           \E a \in msgs : a.type = "Answer" /\ a.lastRound = r /\ a.lastVal = o.val /\ a.lastVal \notin V
+    BY <1>5, <1>4
+  <1>7 QED
+    BY <1>6  
 
 (*****************************************************************************)
+(* If a set of values `V' is not offered in some round `r1', then it is not  *)
+(* offered in any round `r2' where `r2' is greater than or equal to `r1'.    *)
+(*                                                                           *)
+(* The proof is by naturals induction of `NotOfferedInCarry'.                *)
 (*****************************************************************************)  
 LEMMA NotOfferedInSuffix ==
   ASSUME TypeOK, MsgInv,
@@ -583,7 +505,7 @@ LEMMA ChosenCarry ==
   <1>3 \A mmm \in A : mmm.type = "Answer" /\ mmm.lastRound = r /\ mmm.lastPrimed
     BY DEF QuorumAnswers, Answers, AllIdenticalRounds, AllPrimed
   <1>4 \A mmm \in A : mmm.lastVal = v1
-    BY SingularPrimedRoundQuorumAnswer DEF TypeOK, MsgInv, ConsInv
+    BY PrimedRoundQuorumAnswersAreUniform DEF TypeOK, MsgInv, ConsInv
   <1>5 \A n \in msgs : n.type = "Offer" /\ n.round = r + 1 =>
             /\ n.primed => 
                 \E R \in Quorums : \E B \in QuorumAnswers(R) :
@@ -686,7 +608,7 @@ LEMMA ChosenCarry ==
         <4>16a \A b \in B : b \in msgs
           BY <3>2, <3>1 DEF QuorumAnswers, Answers, Messages, TypeOK
         <4>16 \A b \in B : b.lastPrimed /\ b.lastRound = r => b.lastVal = v1
-          BY <3>2, <3>4, <4>9, <4>12b, <4>16a, IdentityOfPrimedRoundAnswers
+          BY <3>2, <3>4, <4>9, <4>12b, <4>16a, SingularityOfPrimedRoundAnswers
         <4>17 DEFINE highestRoundPrimedAnswers == {b \in highestRoundAnswers : b.lastPrimed}
         <4>17b highestRoundPrimedAnswers = {b \in B : b.lastPrimed}
           BY <4>15
@@ -767,7 +689,7 @@ LEMMA Consistent == Inv => Consistency
        /\ m.lastVal \in Values /\ n.lastVal \in Values
     BY DEF Messages, QuorumAnswers, Answers
   <1>2 (\A mmm \in A : mmm.lastVal = v1) /\ (\A mmm \in B : mmm.lastVal = v2)
-    BY SingularPrimedRoundQuorumAnswer DEF TypeOK
+    BY PrimedRoundQuorumAnswersAreUniform DEF TypeOK
   <1>10 CASE m.lastRound = n.lastRound  \*TODO cleanup
     <2>4 \E ma \in A, mb \in B : ma.lastVal = mb.lastVal
       BY <1>10, QuorumAssumption DEF QuorumAnswers, Answers, Messages, ConsInv, AllIdenticalRounds
@@ -1053,7 +975,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
                   <9>1 (A \in QuorumAnswers(Q) /\ AllIdenticalRounds(A))'
                     BY <3>1, <4>4, <8>1 DEF QuorumAnswers, Answers, AllIdenticalRounds
                   <9>2 QED
-                    BY <3>1, <4>4, <7>1, <7>4, <8>1, <8>2, <9>1 DEF TrySend, Send, QuorumAnswers, Answers, AllIdenticalRounds
+                    BY <4>4, <7>1, <7>4, <8>1, <8>2, <9>1 DEF TrySend, Send, QuorumAnswers, Answers, AllIdenticalRounds
                 \* For the `m \notin msgs' sub-case, we employ additional hints to show that the predicates
                 \* `A \in QuorumAnswers(Q)', `AllIdenticalRounds(A)', `m.val \in SuccessorValues(A)'
                 \* and `m.round = PickRound(A) + 1' are preserved in the next state.
@@ -1062,7 +984,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
                             m = [type |-> "Offer", val |-> v, round |-> PickRound(A) + 1, primed |-> FALSE]
                     BY <7>1, <8>3
                   <9>2 (A \in QuorumAnswers(Q) /\ AllIdenticalRounds(A))'
-                    BY <3>1, <4>4, <8>1, <8>3 DEF QuorumAnswers, Answers, AllIdenticalRounds
+                    BY <3>1, <4>4, <8>1 DEF QuorumAnswers, Answers, AllIdenticalRounds
                   <9>3 (m.val \in SuccessorValues(A))'
                     BY <3>1, <4>4, <9>1
                   <9>4 (m.round = PickRound(A) + 1)'
@@ -1211,7 +1133,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
                     \* When `o' is primed, the source quorum-answer set must be uniform (all identical
                     \* rounds and values). A uniform set of answers leads to a single successor value,
                     \* therefore `SuccessorValues(B)' must be a singleton set containing `PickValue(B)'.
-                    BY <8>13, <8>14, <8>16, <8>17, UniformAnswerSuccessorSingularity, QuorumAssumption 
+                    BY <8>13, <8>14, <8>16, <8>17, SingularityOfSuccessorsToUniformAnswers, QuorumAssumption 
                        DEF QuorumAnswers, Answers
                   <9>2 QED
                     BY <9>1, <8>15
