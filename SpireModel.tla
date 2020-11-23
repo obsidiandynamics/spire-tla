@@ -5,10 +5,10 @@
 (*****************************************************************************)
 EXTENDS Spire, TLC, FiniteSets, Randomization, Sequences
 
-CONSTANTS MaxRounds     \* an upper bound on `Rounds'
+CONSTANTS MaxRound     \* an upper bound on `Rounds'
 
 \* A finite set of rounds, required for bounded model checking.
-FiniteRounds == 0..MaxRounds
+FiniteRounds == 0..MaxRound
 
 \* Model symmetry across consenters and proposed values.
 Symmetry == Permutations(Consenters) \union Permutations(Values)
