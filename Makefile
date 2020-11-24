@@ -23,6 +23,7 @@ soak: FORCE
 pdf:
 	TOOLS_PATH=${tools_path} ./makepdf.sh Spire
 	TOOLS_PATH=${tools_path} ./makepdf.sh SpireModel
+	TOOLS_PATH=${tools_path} ./makepdf.sh SpireFair
 	TOOLS_PATH=${tools_path} ./makepdf.sh SpireTlaps
 
 FORCE:

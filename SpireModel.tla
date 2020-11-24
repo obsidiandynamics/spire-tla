@@ -36,15 +36,31 @@ ISpec == Inv /\ [][Next]_vars
 (* Lamport's 2018 paper 'Using TLC to Check Inductive Invariance'.           *)                                
 (*****************************************************************************)
 CArg == 10000000    \* upper bound on `|msgs|'
-PArg == 2           \* `PArg / |Messages|' is probability of including an element of `Messages` in a subset
+PArg == 2           \* `PArg / |Messages|' is probability of including an element of `Messages' in a subset
 
+(*****************************************************************************)
+(* Prevents integer overflow when computing an answer to `2^p' by capping    *)
+(* the result.                                                               *)
+(*****************************************************************************)
 RECURSIVE BoundedPowerOfTwo(_)
 BoundedPowerOfTwo(p) ==
     IF p > 30 THEN 2147483647
     ELSE IF p = 0 THEN 1
     ELSE 2 * BoundedPowerOfTwo(p - 1)
+
+(*****************************************************************************)
+(* Returns an integer that is at most as large as the cardinality of the     *)
+(* powerset of `M'. For small `|M|', the value is `2^|M|' as expected.       *)
+(* As `|M|' increases, the result is capped to avoid integer overflow.       *)
+(*****************************************************************************)
 PowersetCardinality(M) == BoundedPowerOfTwo(Cardinality(M))
 Min(a, b) == IF a < b THEN a ELSE b
+
+(*****************************************************************************)
+(* A stricter variant of the `Inv' inductive invariant, where the            *)
+(* type-correctness predicate for `msgs' has been restricted to a random     *)
+(* set of the subsets of `Messages'.                                         *)
+(*****************************************************************************)
 RInv == 
     LET powersetCardinality == PowersetCardinality(Messages)
         randomSubsets == RandomSetOfSubsets(Min(CArg, powersetCardinality), PArg, Messages)

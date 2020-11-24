@@ -1,4 +1,7 @@
 ---- MODULE SpireTlaps ----
+(*****************************************************************************)
+(* The complete proof of the safety of the Spire consensus algorithm.        *)
+(*****************************************************************************)
 EXTENDS Spire, TLAPS, NaturalsInduction, FiniteSetTheorems
 
 (*****************************************************************************)
@@ -52,7 +55,7 @@ HasMax(S) ==
 (*                                                                           *)
 (* Proof is by finite set induction: the predicate `HasMax({})' holds, and   *)
 (* the addition of a natural number `x' to some set of naturals `R', where   *)
-(* `x' is not already in `R' and `HasMax(R)' holds, preserves                *)
+(* `x' is not already in `R' and `HasMax(R)', preserves                      *)
 (* `HasMax(R \union {x})'.                                                   *)
 (*****************************************************************************)
 LEMMA AllNonEmptyFiniteNaturalsHaveMax ==
@@ -66,12 +69,12 @@ LEMMA AllNonEmptyFiniteNaturalsHaveMax ==
     BY DEF HasMax
   <1>1 Q({})
     OBVIOUS
-  <1>3 ASSUME NEW R, NEW x, Q(R), x \notin R
+  <1>2 ASSUME NEW R, NEW x, Q(R), x \notin R
        PROVE  Q(R \cup {x})
-    BY <1>3 DEF HasMax
+    BY <1>2 DEF HasMax
   <1> HIDE DEF Q
   <1> QED
-    BY <1>1, <1>3, FS_Induction, IsaM("blast") DEF HasMax    
+    BY <1>1, <1>2, FS_Induction, IsaM("blast") DEF HasMax    
 
 (*****************************************************************************)
 (* The image of `MaxLastRound(M)' is a single element in                     *)
