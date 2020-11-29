@@ -24,6 +24,19 @@ SingularPrimedPerRound ==
     \A r \in Rounds :
         LET primedAnswers == {m \in msgs : m.type = "Answer" /\ m.lastRound = r /\ m.lastPrimed}
         IN  ~\E m1, m2 \in primedAnswers : m1.lastVal # m2.lastVal
+
+(*****************************************************************************)
+(* If `v' was chosen in some round `s', then there must be an earlier        *)
+(* round `r', such that `v' was accepted by a complete quorum in `r' and     *)
+(* none of the offers for that quorum were primed in `r'.                    *)
+(*****************************************************************************)
+ChosenRequiresEarlierUnprimedOffers ==
+    \A v \in Values : \A s \in Rounds : 
+        /\  \E Q \in Quorums : \E A \in QuorumAnswers(Q) :
+                \A a \in A : a.lastPrimed /\ a.lastRound = s /\ a.lastVal = v
+        =>  \E r \in Rounds : r < s /\ \E R \in Quorums : \E B \in QuorumAnswers(R) :
+                \A b \in B : ~b.lastPrimed /\ b.lastRound = r /\ b.lastVal = v
+
 ----
 (*****************************************************************************)
 (* A fully-inductive specification.                                          *)

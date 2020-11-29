@@ -11,7 +11,7 @@ CONSTANTS MaxRound     \* an upper bound on `Rounds'
 FiniteRounds == 0..MaxRound
 ----
 (*****************************************************************************)
-(* Eventually, either a value is chosen, or the bounded model runs out of    *)
+(* Eventually, either a value is chosen or the bounded model runs out of     *)
 (* round numbers.                                                            *)
 (*****************************************************************************)
 TemporalProperties ==

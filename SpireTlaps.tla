@@ -1,6 +1,6 @@
 ---- MODULE SpireTlaps ----
 (*****************************************************************************)
-(* The complete proof of the safety of the Spire consensus algorithm.        *)
+(* The complete safety proof of the Spire consensus algorithm.               *)
 (*****************************************************************************)
 EXTENDS Spire, TLAPS, NaturalsInduction, FiniteSetTheorems
 
