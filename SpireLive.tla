@@ -1,4 +1,4 @@
----- MODULE SpireFair ----
+---- MODULE SpireLive ----
 (*****************************************************************************)
 (* Extension of the base `Spire' module to facilitate bounded model          *)
 (* checking of its liveness property.                                        *)
