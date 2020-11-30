@@ -4,7 +4,7 @@
 (*****************************************************************************)
 EXTENDS Integers
 
-CONSTANTS Consenters,   \* `Consenters' is a set of consenter nodes.
+CONSTANTS Consenters,   \* `Consenters' is a set of consenter nodes
           Values,       \* `Values' is a set of proposed values
           Quorums       \* `Quorums' is a set of quorums, where each element is a set of
                         \* consenters
