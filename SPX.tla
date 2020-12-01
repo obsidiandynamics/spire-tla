@@ -32,20 +32,22 @@ VARIABLES
     committed,      \* `committed[s]' is the committed value for slot `s',
                     \* used for abstractly modelling single-value consensus
     forwarded,      \* `forwarded[p]' is a set of forwarded commands for proposer `p'
-    usedPrivilege   \* `usedPrivilege[p]' is the highest slot-privilege used by `p'
+    epoch,          \* `epoch[p]' is the current epoch number of `p'
+    lastProposed,   \* `lastProposed[p]' is the highest slot that `p' proposed in
+    lastChosen      \* `lastChosen[p]' is the highest slot that `p's proposal was chosen in
 
-vars == <<proposals, committed, forwarded, usedPrivilege>>
+vars == <<proposals, committed, forwarded, epoch, lastProposed, lastChosen>>
 
 Slots == Nat        \* override with a finite set when model checking
+Epochs == Nat       \* override with a finite set when model checking
 
 \* A finite set of slots, required for bounded model checking.
-FiniteSlots == 1..2
+FiniteSlots == 1..3
 
-(*****************************************************************************)
-(* Invariants.                                                               *)
-(*****************************************************************************)
+\* A finite set of epochs, required for bounded model checking.
+FiniteEpochs == 1..3
 
-Values == Commands \X Proposers
+Values == Commands \X Proposers \X Epochs
 Proposals == [val: Values, priv: BOOLEAN]
 
 ValidProposals == 
@@ -57,15 +59,20 @@ ValidCommitted ==
 ValidForwarded == 
     /\  DOMAIN forwarded \in SUBSET Proposers
     /\  \A p \in DOMAIN forwarded : forwarded[p] \in SUBSET Commands
-ValidUsedPrivilege == 
-    /\  DOMAIN usedPrivilege \in SUBSET Proposers
-    /\  \A s \in DOMAIN usedPrivilege : usedPrivilege[s] \in Slots
+ValidEpoch == epoch \in [Proposers -> Epochs]
+ValidLastProposed == 
+    /\  DOMAIN lastProposed \in SUBSET Proposers
+    /\  \A s \in DOMAIN lastProposed : lastProposed[s] \in Slots
+ValidLastChosen == 
+    /\  DOMAIN lastChosen \in SUBSET Proposers
+    /\  \A s \in DOMAIN lastChosen : lastChosen[s] \in Slots
 
 (*****************************************************************************)
 (* The complete type-correctness invariant.                                  *)
 (*****************************************************************************)  
 TypeOK ==
-    ValidProposals /\ ValidCommitted /\  ValidForwarded /\ ValidUsedPrivilege
+    /\  ValidProposals /\ ValidCommitted /\ ValidForwarded /\ ValidEpoch
+    /\  ValidLastProposed /\ ValidLastChosen
 
 (*****************************************************************************)
 (* Selects the maximum value in a set.                                       *)
@@ -107,7 +114,8 @@ TrySubmitProposal(s, v, privileged) ==
                 proposals' = proposals @@ s :> {proposal}
 
 (*****************************************************************************)
-(* Clears all proposals in slot `s'.                                         *)
+(* Clears all proposals in slot `s'. This is only done when a value          *)
+(* has been decided.                                                         *)
 (*****************************************************************************)
 ClearProposals(s) ==
     proposals' = [t \in DOMAIN proposals \ {s} |-> proposals[t]]
@@ -119,8 +127,8 @@ CommitValue(s, v) ==
     committed' = committed @@ s :> v
 
 (*****************************************************************************)
-(* The next-state action for conditionally executing the consensus protocol  *)
-(* in slot `s'.                                                              *)
+(* The next-state relation for conditionally executing the consensus         *)
+(* protocol in slot `s'.                                                     *)
 (*                                                                           *)
 (* Termination will occur if at least one value has been proposed for        *)
 (* `s'. If the set of proposed values in `s' is non-empty, an arbitrary      *)
@@ -132,7 +140,7 @@ Consensus(s) ==
     /\  LET chosen == CHOOSE p \in proposals[s] : TRUE
         IN  /\  ClearProposals(s)
             /\  CommitValue(s, chosen.val)
-    /\  UNCHANGED <<forwarded, usedPrivilege>>
+    /\  UNCHANGED <<forwarded, epoch, lastProposed, lastChosen>>
 ----
 (*****************************************************************************)
 (* Invariants.                                                               *)
@@ -155,24 +163,9 @@ SingularityOfPrivilege ==
         Cardinality({p \in proposals[s] : p.priv}) <= 1
 ----
 (*****************************************************************************)
-(* Proposer behaviour.                                                       *)
+(* Proposer behaviour, covering both privileged and non-privileged cases as  *)
+(* separate next-state relations.                                            *)
 (*****************************************************************************)
-
-(*****************************************************************************)
-(* Atomically verify whether a slot-privilege for proposer `p' is available  *)
-(* for slot `s', and lock out `s' and all slots and prior to it.             *)
-(*                                                                           *)
-(* This ensures that a privileged proposer does not use its privilege twice  *)
-(* on the same slot for a different command. In practice, this cannot occur  *)
-(* if the proposer remembers the last committed slot number and clears its   *)
-(* status in the event of a restart.                                         *)
-(*****************************************************************************)
-TryUsePrivilege(s, p) ==
-    IF p \in DOMAIN usedPrivilege THEN
-        /\  s > usedPrivilege[p]
-        /\  usedPrivilege' = [usedPrivilege EXCEPT ![p] = s]
-    ELSE
-        usedPrivilege' = usedPrivilege @@ p :> s
 
 (*****************************************************************************)
 (* Conditionally forward the command `c' to a proposer `p', if one was not   *)
@@ -187,9 +180,10 @@ TryForwardCommand(p, c) ==
 
 (*****************************************************************************)
 (* Proposer `p' commits a command to the log and promotes itself as the new  *)
-(* privileged proposer in doing so (by attaching its PID to the command).    *)
+(* privileged proposer in doing so (by attaching its PID and                 *)
+(* epoch number to the command).                                             *)
 (*                                                                           *)
-(* Ordinarily, a proposer will prefer to forward a command to a privileged   *)
+(* Ordinarily, a `p' will prefer to forward a command to a privileged        *)
 (* proposer. However, it might not be aware of one.                          *)
 (* Perhaps, the log is empty, or `p' has not yet learned a value.            *)
 (* Alternatively, it might suspect that the privileged proposer has failed   *)
@@ -197,7 +191,7 @@ TryForwardCommand(p, c) ==
 (* take matters into its own hands.                                          *)
 (*                                                                           *)
 (* The protocol requires `p' to first select a vacant slot, which should     *)
-(* ideally be after the last committed slot in the log. But the new slot     *)
+(* ideally be after the last committed slot in the log. The new slot         *)
 (* should not leave a gap between itself and the                             *)
 (* most recently committed slot. `p' can                                     *)
 (* conservatively discover a vacant slot by 1) looking at its own copy of    *)
@@ -208,14 +202,22 @@ TryForwardCommand(p, c) ==
 (* be committed (an occupied slot in a consenter does not imply that a value *)
 (* has been chosen in that slot), so `p' would conservatively                *)
 (* start at that slot number and attempt to terminate the protocol.          *)
+(*                                                                           *)
+(* Propopsing a value in `s' is the first step. To actually acquire          *)
+(* privileged status, `p' has to ascertain that its command (and not some    *)
+(* other proposer's) was committed in `s'. This is done by checking that     *)
+(* the PID and epoch numbers match. In asserting this, `p' is granted the    *)
+(* right of privilege in `s + 1'.                                            *)
 (*****************************************************************************)
 PromoteSelf(p) ==
+    /\  p \notin DOMAIN lastProposed
     /\  LET highestProposed == HighestProposed
             nextVacant == IF highestProposed # 0 THEN highestProposed ELSE HighestCommitted + 1
         IN  \E s \in 1..nextVacant, c \in Commands :
                 /\  s \in Slots
-                /\  TrySubmitProposal(s, <<c, p>>, FALSE)
-    /\  UNCHANGED <<forwarded, committed, usedPrivilege>>
+                /\  TrySubmitProposal(s, <<c, p, epoch[p]>>, FALSE)
+                /\  lastProposed' = lastProposed @@ p :> s
+    /\  UNCHANGED <<forwarded, committed, epoch, lastChosen>>
 
 (*****************************************************************************)
 (* If a proposer has been forwarded a command from its peer, it should try   *)
@@ -231,21 +233,31 @@ PromoteSelf(p) ==
 (*                                                                           *)
 (* In a practical implementation, `p' must only commit a value in `s' if it  *)
 (* has committed a value in `s - 1' — a fact that it is intrinsically aware  *)
-(* of. But if `p' restarts, it loses this information. In a real             *)
-(* implementation, an initialising proposer makes no assumptions as to its   *)
-(* status. So the specification assumes amnesia, and checks the committer    *)
-(* of the preceding value.                                                   *)
+(* of. The specification mimics this property by tracking two variables:     *)
+(* `lastProposed' and `lastChosen'. The commit status of `s - 1' is verified *)
+(* asynchronously by `VerifyChosenProposal(p)', which updates                *)
+(* `lastChosen[p]' accordingly.                                              *)
+(* `p' halts in `s' if it hasn't secured `s - 1'.                            *)
+(* A real implementation will eventually time out and reply with a NACK. If  *)
+(* another proposer secures `s - 1', `p' should disavow its status and       *)
+(* NACK the forwarded request. Its status would also be dropped if `p' were  *)
+(* to restart. The implementation should                                     *)
+(* immediately NACK all forwarded requests if `p' is non-privileged.         *)
+(*                                                                           *)
+(* This specification does not model NACKs as this would only make the       *)
+(* forwarding proposer try some other proposer or attempt to promote itself; *)
+(* both actions are already adequately specified.                            *)
 (*****************************************************************************)
 ProposeForwarded(p) ==
+    /\  p \in DOMAIN lastChosen
     /\  p \in DOMAIN forwarded
     /\  LET command == CHOOSE c \in forwarded[p] : TRUE
-            highestCommitted == HighestCommitted
-        IN  /\  highestCommitted # 0
-            /\  highestCommitted + 1 \in Slots
-            /\  committed[highestCommitted][2] = p
-            /\  TryUsePrivilege(highestCommitted + 1, p)
-            /\  TrySubmitProposal(highestCommitted + 1, <<command, p>>, TRUE)
-    /\  UNCHANGED <<forwarded, committed>>
+            lastSlot == lastProposed[p]
+        IN  /\  lastSlot + 1 \in Slots
+            /\  lastSlot = lastChosen[p]
+            /\  TrySubmitProposal(lastSlot + 1, <<command, p, epoch[p]>>, TRUE)
+            /\  lastProposed' = [lastProposed EXCEPT ![p] = @ + 1]
+    /\  UNCHANGED <<forwarded, committed, epoch, lastChosen>>
 
 (*****************************************************************************)
 (* The range of a function `F'.                                              *)
@@ -265,15 +277,66 @@ Range(F) == {F[d] : d \in DOMAIN F}
 (* by learning values, and `p' might not be privy to all values up to the    *)
 (* end of the log, it is conceivable that `q' is not the most recent         *)
 (* privileged proposer. Perhaps, some other proposer has taken over `q' —    *)
-(* an event that `p' is not yet aware of. So we account for all admissible   *)
-(* behaviours by allowing proposers to forward commands to any proposer      *)
+(* a fact that `p' is not yet aware of. So we account for all admissible     *)
+(* behaviours by allowing commands to be forwarded to any proposer           *)
 (* that held the privileged status at one time or another.                   *)
 (*****************************************************************************)
 ForwardToPrivileged ==
     /\  \E p \in {v[2] : v \in Range(committed)} :
             \E c \in Commands :
                 TryForwardCommand(p, c)
-    /\  UNCHANGED <<proposals, committed, usedPrivilege>>
+    /\  UNCHANGED <<proposals, committed, epoch, lastProposed, lastChosen>>
+
+(*****************************************************************************)
+(* Verifies that `p''s value proposed in slot `lastProposed[p]' was chosen   *)
+(* by consensus, thereby extended `p''s privileged status by one slot.       *)
+(*                                                                           *)
+(* Verification occurs when `p' learns of a result favouring `p' — sometime  *)
+(* after proposing the value.                                                *)
+(* Until this has been verified for the pending slot                         *)
+(* `s', `p' is blocked from using its privilege in `s + 1'. (`p' halts until *)
+(* it has a confirmation of a successful commit in `s'.)                     *)
+(* A practical implementation should also consider the case where some other *)
+(* proposer secures `s', implying that `p''s status has been superseded. The *)
+(* implementation may simply reset `p' — yielding its status and             *)
+(* incrementing the epoch. The specification disregards this case because    *)
+(* the next-state action `Reset(p)' already covers this.                     *)
+(*****************************************************************************)
+VerifyChosenProposal(p) ==
+    /\  p \in DOMAIN lastProposed
+    /\  LET lastSlot == lastProposed[p]
+        IN  /\  lastSlot \in DOMAIN committed
+            /\  committed[lastSlot][2] = p
+            /\  committed[lastSlot][3] = epoch[p]
+            /\  IF p \notin DOMAIN lastChosen THEN 
+                    lastChosen' = lastChosen @@ p :> lastSlot
+                ELSE
+                    /\  lastChosen[p] # lastSlot
+                    /\  lastChosen' = [lastChosen EXCEPT ![p] = lastSlot]
+            /\  UNCHANGED <<forwarded, proposals, committed, epoch, lastProposed>>
+
+(*****************************************************************************)
+(* Reset proposer `p', wiping any transient variables — thereby simulating   *)
+(* a fail-stop, followed by reinitialisation.                                *)
+(*                                                                           *)
+(* A reset is also useful is when `p' determines that some                   *)
+(* other proposer has acquired privileged status. In this case `p'           *)
+(* should voluntarily yield its status — an equivalent of a reset.           *)
+(*                                                                           *)
+(* Upon restart, the `p' will disregard any prior privileged status. Its     *)
+(* epoch will be incremented, so that any privilege status acquired within   *)
+(* the new epoch will be distinct from the previous. This ensures that a     *)
+(* proposer never uses its slot-privilege twice.                             *)
+(*****************************************************************************)
+Reset(p) ==
+    \* Only reset a proposer if it might be privileged. Resetting a non-privileged
+    \* proposer would have no effect, other than to increment its epoch.
+    /\  p \in DOMAIN lastProposed
+    /\  epoch[p] + 1 \in Epochs
+    /\  lastProposed' = [d \in DOMAIN lastProposed \ {p} |-> lastProposed[d]]
+    /\  lastChosen' = [d \in DOMAIN lastChosen \ {p} |-> lastChosen[d]]
+    /\  epoch' = [epoch EXCEPT ![p] = @ + 1]
+    /\  UNCHANGED <<forwarded, proposals, committed>>
 ----
 (*****************************************************************************)
 (* The initial state predicate.                                              *)
@@ -282,7 +345,9 @@ Init ==
     /\  forwarded = <<>>
     /\  proposals = <<>>
     /\  committed = <<>>
-    /\  usedPrivilege = <<>>
+    /\  epoch = [p \in Proposers |-> 1]
+    /\  lastProposed = <<>>
+    /\  lastChosen = <<>>
 
 (*****************************************************************************)
 (* A special 'marker' state that signifies that the algorithm has            *)
@@ -300,6 +365,8 @@ Terminated ==
             \/  \E p \in Proposers : 
                     \/  ENABLED PromoteSelf(p)
                     \/  ENABLED ProposeForwarded(p)
+                    \/  ENABLED VerifyChosenProposal(p)
+                    \/  ENABLED Reset(p)
             \/  ENABLED ForwardToPrivileged
     /\  UNCHANGED vars
 
@@ -311,6 +378,8 @@ Next ==
     \/  \E p \in Proposers : 
             \/  PromoteSelf(p)
             \/  ProposeForwarded(p)
+            \/  VerifyChosenProposal(p)
+            \/  Reset(p)
     \/  ForwardToPrivileged
     \/  Terminated
 

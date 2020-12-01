@@ -17,6 +17,11 @@ sim:
 	-XX:+UseParallelGC tlc2.TLC SpireSafe.tla -workers ${workers} \
 	-tool -simulate -config SpireSafe.cfg
 
+multicheck:
+	java -cp ${tools_path} \
+	-XX:+UseParallelGC tlc2.TLC SPX.tla -workers ${workers} \
+	-tool -modelcheck -config SPX.cfg
+
 soak: FORCE
 	SOAK_CMD="make check workers=${workers}" SOAK_GITPULL=false ./soak.sh
 
