@@ -37,7 +37,8 @@ VARIABLES
                     \* used for abstractly modelling single-value consensus
     epoch,          \* `epoch[p]' is the current epoch number of `p'
     lastProposed,   \* `lastProposed[p]' is the highest slot that `p' proposed in
-    lastChosen      \* `lastChosen[p]' is the highest slot that `p's proposal was chosen in
+    lastChosen      \* `lastChosen[p]' is the highest slot in which a marked 
+                    \* proposal by `p' was chosen in
 
 vars == <<proposals, committed, epoch, lastProposed, lastChosen>>
 
@@ -45,10 +46,13 @@ Slots == Nat        \* override with a finite set when model checking
 Epochs == Nat       \* override with a finite set when model checking
 
 \* A finite set of slots, required for bounded model checking.
-FiniteSlots == 1..6
+FiniteSlots == 1..4
 
 \* A finite set of epochs, required for bounded model checking.
 FiniteEpochs == 1..2
+
+\* Model symmetry across proposers and commands.
+Symmetry == Permutations(Proposers) \union Permutations(Commands)
 
 Values == Commands \X (Proposers \union {Nil}) \X (Epochs \union {Nil})
 Proposals == [val: Values, priv: BOOLEAN]
@@ -107,7 +111,7 @@ HighestCommitted ==
 (*****************************************************************************)
 (* Conditionally submits a proposal for value `v' in slot `s' with the       *)
 (* specified `privileged' mode. The proposal is appended to `proposals[s]'   *)
-(* unless one is already present, or a value has been chosen in `s'.         *)
+(* unless one is already present.                                            *)
 (*****************************************************************************)
 TrySubmitProposal(s, v, privileged) ==
     LET proposal == [val |-> v, priv |-> privileged]
@@ -118,42 +122,31 @@ TrySubmitProposal(s, v, privileged) ==
             proposals' = proposals @@ s :> {proposal}
 
 (*****************************************************************************)
-(* Clears all proposals in slot `s'. This is only done when a value          *)
-(* has been decided.                                                         *)
-(*****************************************************************************)
-ClearProposals(s) ==
-    proposals' = [t \in DOMAIN proposals \ {s} |-> proposals[t]]
-
-(*****************************************************************************)
-(* Commits the specified value `v' in slot `s'.                              *)
-(*****************************************************************************)
-CommitValue(s, v) ==
-    committed' = committed @@ s :> v
-
-(*****************************************************************************)
 (* The next-state relation for conditionally executing the consensus         *)
 (* protocol in slot `s'.                                                     *)
 (*                                                                           *)
-(* Termination will occur if at least one value has been proposed for        *)
+(* Termination occurs if at least one value has been proposed for            *)
 (* `s'. If the set of proposed values in `s' is non-empty, an arbitrary      *)
-(* value among those proposed will be chosen and assigned to `committed[s]', *)
-(* while simultaneously clearing `proposals[s]'.                             *)
+(* value among those proposed will be chosen and assigned to `committed[s]'. *)
+(* By the agreement property, once a value has been committed in `s', no     *)
+(* other value may be committed in `s'.                                      *)
 (*****************************************************************************)
 Consensus(s) ==
     /\  s \in DOMAIN proposals
+    /\  s \notin DOMAIN committed
     /\  LET chosen == CHOOSE p \in proposals[s] : TRUE
-        IN  /\  ClearProposals(s)
-            /\  CommitValue(s, chosen.val)
-    /\  UNCHANGED <<epoch, lastProposed, lastChosen>>
+        IN  committed' = committed @@ s :> chosen.val
+    /\  UNCHANGED <<epoch, lastProposed, lastChosen, proposals>>
 ----
 (*****************************************************************************)
 (* Invariants.                                                               *)
 (*****************************************************************************)
 
-\* CappedPendingProposals ==
-\*     Cardinality(DOMAIN proposals) <= Gamma
-
-SlidingWindowSingularityOfPrivilegedProposer ==
+(*****************************************************************************)
+(* No two proposers may commit a distinctly marked value within `Γ' slots of *)
+(* each other.                                                               *)
+(*****************************************************************************)
+PrivilegedProposerSeparation ==
     \A s \in Slots :
         s \in DOMAIN committed /\ committed[s][2] # Nil 
             => \A t \in Max(1, s - Gamma + 1)..(s - 1) :
@@ -163,7 +156,7 @@ SlidingWindowSingularityOfPrivilegedProposer ==
 
 (*****************************************************************************)
 (* There may be at most one privilege exercised in any slot. The concept     *)
-(* of privilege is protocol-specific; it may refer to the                    *)
+(* of privilege is protocol-specific; for example, it may refer to the       *)
 (* 'round-zero privilege' of Spire, or the                                   *)
 (* 'ballot-zero optimisation' of Paxos.                                      *)
 (*****************************************************************************)
@@ -171,8 +164,22 @@ SingularityOfExercisedPrivilege ==
     \A s \in DOMAIN proposals :
         Cardinality({p \in proposals[s] : p.priv}) <= 1
 
-UniqueLastChosen ==
-    \A p1, p2 \in DOMAIN lastChosen : lastChosen[p1] = lastChosen[p2] => p1 = p2
+(*****************************************************************************)
+(* The `lastChosen' offsets of no two proposers may come within `Γ'          *)
+(* of each other.                                                            *)
+(*****************************************************************************)
+LastChosenOffsetSeparation ==
+    LET Abs(x) == IF x < 0 THEN -x ELSE x
+    IN  \A p1, p2 \in DOMAIN lastChosen : 
+            Abs(lastChosen[p1] - lastChosen[p2]) < Gamma => p1 = p2
+
+(*****************************************************************************)
+(* No gap in the log (largest contiguous sequence of uncommitted             *)
+(* slots) may exceed `Γ'.                                                    *)
+(*****************************************************************************)
+WidestGapInLog ==
+    \A s \in DOMAIN committed : 
+        s > Gamma => ~\A t \in (s - Gamma)..(s - 1) : t \notin DOMAIN committed
 ----
 (*****************************************************************************)
 (* Proposer behaviour, covering both privileged and non-privileged cases as  *)
@@ -226,7 +233,12 @@ AreNeutralOrMarked(slots, p, e) ==
 (* able to commit `Γ - 1' contiguous unmarked entries, the proposer that     *)
 (* commits the                                                               *)
 (* `Γ'th marked entry will acquire commit privileges over the following `Γ'  *)
-(* slots.                                                                    *)
+(* slots. `p' may nominate any proposer for privileged status, including     *)
+(* the current privileged proposer. In practice, `p' may do so if it needs   *)
+(* to commit a value urgently, but it would rather not become privileged     *)
+(* itself. An example is where `p' is acting under a soft deadline and, in   *)
+(* the absence of a timely response, `p' decides to commit directly          *)
+(* but allows the current privileged proposer to retain its status.          *)
 (*                                                                           *)
 (* The protocol requires `p' to first select a vacant slot, which should     *)
 (* ideally follow the last committed slot in the log. `p' can                *)
@@ -255,7 +267,7 @@ PromoteSelf(p) ==
     /\  p \notin DOMAIN lastChosen
     /\  LET highestProposed == HighestProposed
             nextVacant == IF highestProposed # 0 THEN highestProposed ELSE HighestCommitted + 1
-        IN  \E s \in 1..nextVacant, c \in Commands :
+        IN  \E s \in 1..nextVacant, c \in Commands : \*TODO
                 /\  s \in Slots
                 /\  IF AreNeutralOrMarked(Max(1, s - Gamma + 1)..(s - 1), p, epoch[p]) THEN
                         TrySubmitProposal(s, <<c, p, epoch[p]>>, FALSE)
@@ -284,8 +296,8 @@ PromoteSelf(p) ==
 (* all admissible behaviours by allowing commands to be forwarded            *)
 (* to any proposer, irrespective of whether or not it is privileged.         *)
 (*                                                                           *)
-(* In a practical implementation, `p' may only exercise its privilege when   *)
-(* committing a value in `s' if it has committed at least one value in the   *)
+(* The proxy `p' may only exercise its privilege when committing             *)
+(* a value in `s' if it has committed at least one marked value in the       *)
 (* slot range `(s - Γ)..(s - 1)' — a fact that it is intrinsically aware     *)
 (* of. The specification mimics this property by tracking two variables:     *)
 (* `lastProposed' and `lastChosen'. The commit status of prior slots         *)
@@ -315,17 +327,12 @@ ProposePrivileged(p) ==
     /\  UNCHANGED <<committed, epoch, lastChosen>>
 
 (*****************************************************************************)
-(* The range of a function `F'.                                              *)
-(*****************************************************************************)
-Range(F) == {F[d] : d \in DOMAIN F}
-
-(*****************************************************************************)
 (* Verifies that `p''s value proposed in slot `lastProposed[p]' or any of    *)
 (* the prior `Γ - 1' slots were chosen                                       *)
 (* by consensus, thereby extending `p''s privileged status by `Γ' slots from *)
 (* the last chosen slot marked by `p'.                                       *)
 (*                                                                           *)
-(* Verification occurs when `p' learns of a result favouring `p' — sometime  *)
+(* Verification occurs when `p' learns of a result favouring `p' — some time *)
 (* after proposing the value.                                                *)
 (* Until this has been verified for slots `(s - Γ + 1)..(s)',                *)
 (* `p' is blocked from using its privilege in `s + 1'. (`p' halts until      *)
@@ -349,7 +356,7 @@ VerifyChosenProposal(p) ==
     /\  UNCHANGED <<proposals, committed, epoch, lastProposed>>
 
 (*****************************************************************************)
-(* Reset proposer `p', wiping any transient variables — thereby simulating   *)
+(* Resets proposer `p', wiping any transient variables — thereby simulating  *)
 (* a fail-stop, followed by reinitialisation.                                *)
 (*                                                                           *)
 (* A reset is also useful is when `p' determines that some                   *)
