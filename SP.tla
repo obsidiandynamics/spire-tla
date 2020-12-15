@@ -1,24 +1,25 @@
 ---- MODULE SP ----
 (*****************************************************************************)
-(* A TLA⁺ specification of the Spanning Privilege composition of a sequence  *)
-(* of discrete single-value consensus instances to realise a                 *)
-(* multi-value consensus protocol. The specification of the single-value     *)
-(* protocol is irrelevant as are not trying to verify it here; the           *)
-(* assumption is that the protocol is correct. The intention of this         *)
-(* specification is to model the composition of discrete protocol instances. *)
+(* A TLA+ specification of the Spanning Privilege algorithm —                *)
+(* the composition of a sequence of discrete single-value consensus          *)
+(* instances to form a complete multi-value consensus protocol.              *)
 (*                                                                           *)
-(* Single-value consensus is modelled abstractly, as a black box.            *)
-(* Rather than specifying a                                                  *)
-(* complete ensemble of consenting processes and depicting all the           *)
-(* admissible behaviours of the underlying protocol, we model a consensus    *)
-(* instance as 1) a variable comprising the finite set of value-bearing      *)
-(* proposals that any process may submit to, 2) an initially unset variable  *)
-(* that specifies the chosen value, and 3) a next-state action that          *)
-(* selects an arbitrary value from (1) and assigns it to (2). If at least    *)
-(* one proposal is submitted, the protocol will eventually terminate by      *)
-(* the execution of (3). Any process can learn the outcome by reading (2).   *)
-(* No process can infuence the value of (2) after the protocol has           *)
-(* terminated.                                                               *)
+(* The specification of the single-value protocol is irrelevant as we are    *)
+(* not trying to verify it here; the assumption is that the protocol is      *)
+(* correct. The intention of this specification is to describe the           *)
+(* composition of discrete protocol instances.                               *)
+(*                                                                           *)
+(* Single-value consensus is modelled abstractly as a black box.             *)
+(* Rather than specifying a complete ensemble of consenting processes and    *)
+(* depicting all the admissible behaviours of the underlying protocol, we    *)
+(* model a consensus instance as 1) a variable comprising the finite set of  *)
+(* value-bearing proposals that any process may submit to, 2) an initially   *)
+(* unset variable that specifies the chosen value, and 3) a next-state       *)
+(* action that selects an arbitrary value from (1) and assigns it to (2).    *)
+(* If at least one proposal is submitted, the protocol will eventually       *)
+(* terminate by the execution of (3). Any process can learn the outcome by   *)
+(* reading (2). No process may influence the value of (2) after the protocol *)
+(* has terminated.                                                           *)
 (*****************************************************************************)
 EXTENDS Integers, TLC, FiniteSets
 
@@ -35,10 +36,10 @@ VARIABLES
                     \* used for abstractly modelling single-value consensus
     committed,      \* `committed[s]' is the committed value for slot `s',
                     \* used for abstractly modelling single-value consensus
-    theta,          \* `theta[p]' is the current theta number of `p'
+    theta,          \* `theta[p]' is the current `theta' of `p'
     lastProposed,   \* `lastProposed[p]' is the highest slot that `p' proposed in
-    lastChosen      \* `lastChosen[p]' is the highest slot in which a marked 
-                    \* proposal by `p' was chosen in
+    lastChosen      \* `lastChosen[p]' is the highest slot in which a value 
+                    \* marked by `p' was chosen in
 
 vars == <<proposals, committed, theta, lastProposed, lastChosen>>
 
@@ -134,8 +135,8 @@ Consensus(s) ==
 (*****************************************************************************)
 
 (*****************************************************************************)
-(* No two proposers may commit a distinctly marked value within `Γ' slots of *)
-(* each other.                                                               *)
+(* No two proposers may commit a distinctly marked value within `Gamma'      *)
+(* slots of each other.                                                      *)
 (*****************************************************************************)
 PrivilegedProposerSeparation ==
     \A s \in Slots :
@@ -148,15 +149,15 @@ PrivilegedProposerSeparation ==
 (*****************************************************************************)
 (* There may be at most one privilege exercised in any slot. The concept     *)
 (* of privilege is protocol-specific; for example, it may refer to the       *)
-(* 'round-zero privilege' of Spire, or the                                   *)
-(* 'ballot-zero optimisation' of Paxos.                                      *)
+(* 'round-zero privilege' of Spire, or the 'ballot-zero optimisation' of     *)
+(* Paxos.                                                                    *)
 (*****************************************************************************)
 SingularityOfExercisedPrivilege ==
     \A s \in DOMAIN proposals :
         Cardinality({p \in proposals[s] : p.priv}) <= 1
 
 (*****************************************************************************)
-(* The `lastChosen' offsets of no two proposers may come within `Γ'          *)
+(* The `lastChosen' offsets of no two proposers may come within `Gamma'      *)
 (* of each other.                                                            *)
 (*****************************************************************************)
 LastChosenOffsetSeparation ==
@@ -166,7 +167,7 @@ LastChosenOffsetSeparation ==
 
 (*****************************************************************************)
 (* No gap in the log (largest contiguous sequence of uncommitted             *)
-(* slots) may exceed `Γ'.                                                    *)
+(* slots) may exceed `Gamma'.                                                *)
 (*****************************************************************************)
 WidestGapInLog ==
     \A s \in DOMAIN committed : 
@@ -189,19 +190,17 @@ SetLast(s, p, map) ==
 (* Conditionally set `lastProposed[p]' to `s' if either the entry is         *)
 (* unassigned, or if `s' is greater than the currently assigned entry.       *)
 (*****************************************************************************)
-SetLastProposed(s, p) ==
-    SetLast(s, p, lastProposed)
+SetLastProposed(s, p) == SetLast(s, p, lastProposed)
 
 (*****************************************************************************)
 (* Conditionally set `lastChosen[p]' to `s' if either the entry is           *)
 (* unassigned, or if `s' is greater than the currently assigned entry.       *)
 (*****************************************************************************)
-SetLastChosen(s, p) ==
-    SetLast(s, p, lastChosen)
+SetLastChosen(s, p) == SetLast(s, p, lastChosen)
 
 (*****************************************************************************)
 (* Checks that all of the given `slots' have been committed, and are either  *)
-(* unmarked or marked with the given `ρ' and `θ'.                            *)
+(* unmarked or marked with the given `_rho' and `_theta'.                    *)
 (*****************************************************************************)
 AreNeutralOrMarked(slots, _rho, _theta) ==
     \A s \in slots : 
@@ -210,61 +209,59 @@ AreNeutralOrMarked(slots, _rho, _theta) ==
             \/  committed[s][2] = _rho /\ committed[s][3] = _theta
 
 (*****************************************************************************)
-(* Proposer `p' attempts to elevate its status to privileged by committing   *)
-(* `Γ' entries ahead of the most recent privileged proposer,                 *)
-(* with the last of those entries marked with `p''s `ρ' and `θ'              *)
+(* Proposer `q' attempts to promote itself to privileged status by           *)
+(* committing `Gamma' entries ahead of the most recent privileged proposer,  *)
+(* with the last of those entries marked with `q''s `rho' and `theta' pair.  *)
 (*                                                                           *)
-(* Ordinarily, `p' will prefer to forward a command to a privileged          *)
+(* Ordinarily, `q' will prefer to forward its command to a privileged        *)
 (* proposer. However, it might not be aware of one.                          *)
-(* Perhaps, the log is empty, or `p' has not yet learned a value.            *)
+(* Perhaps, the log is empty, or `q' has not yet learned a value.            *)
 (* Alternatively, it might suspect that the privileged proposer has failed   *)
-(* through some failure detector (such as a timeout). At this point, `p'     *)
+(* via some failure detector (such as a timeout). At this point, `q'         *)
 (* must either locate an alternate proposer to forward to, or commit the     *)
-(* command directly to the log. If `p' and possibly other proposers are      *)
-(* able to commit `Γ - 1' contiguous unmarked entries, the proposer that     *)
-(* commits the                                                               *)
-(* `Γ'th marked entry will acquire commit privileges over the following `Γ'  *)
-(* slots. `p' may nominate any proposer for privileged status, including     *)
-(* the current privileged proposer. In practice, `p' may do so if it needs   *)
-(* to commit a value urgently, but it would rather not become privileged     *)
-(* itself. An example is where `p' is acting under a soft deadline and, in   *)
-(* the absence of a timely response, `p' decides to commit directly          *)
-(* but allows the current privileged proposer to retain its status.          *)
+(* command directly to the log. If `q' and possibly other proposers can      *)
+(* commit `Gamma - 1' contiguous unmarked entries, the proposer that         *)
+(* commits the `Gamma'th marked entry will acquire privileges over the       *)
+(* following `Gamma' slots. `q' may nominate any proposer for privileged     *)
+(* status, including the current privileged proposer. In practice, `q' may   *)
+(* do so if it needs to commit a value urgently, but it would rather not     *)
+(* become privileged itself. An example is where `q' is acting under a soft  *)
+(* deadline and, in the absence of a timely response, `q' decides to offer   *)
+(* directly but allows the current privileged proposer to retain its status. *)
 (*                                                                           *)
-(* The protocol requires `p' to first select a vacant slot, which should     *)
-(* ideally follow the last committed slot in the log. `p' can                *)
-(* discover a vacant slot by 1) looking at its own copy of                   *)
-(* the log, 2) asking its peers for the highest slot number they are aware   *)
-(* of, or 3) querying the consenters for the highest slot number that is     *)
-(* occupied.                                                                 *)
+(* The protocol requires `q' to first select a vacant slot, which should     *)
+(* ideally follow the last committed slot in the log. `q' can                *)
+(* discover a vacant slot by 1) looking at its own copy of the log,          *)
+(* 2) asking its peers for the highest slot number they are aware of, or     *)
+(* 3) querying the consenters for the highest slot number that is occupied.  *)
 (*                                                                           *)
 (* The next objective is to propose a contiguous series of entries,          *)
-(* which may be real commands or no-ops. The latter may be necessary if `p'  *)
+(* which may be real commands or no-ops. The latter may be necessary if `q'  *)
 (* wishes to proactively elevate its status, even in the absence of          *)
 (* steady command traffic from its clients.                                  *)
-(* The first `Γ - 1' entries must be unmarked. The `Γ'th entry               *)
-(* is marked with `p''s `ρ' and `θ'. Prior to committing the `Γ'th entry,    *)
-(* `p' must ascertain that the preceding `Γ - 1' entries have been chosen    *)
-(* and are unmarked. If some other proposer commits a marked entry,          *)
-(* `p' must either accept the new privileged proposer or restart its count.  *)      
-(* Proposing a marked entry does not imply that                              *)
-(* `p' will succeed; `p' must ascertain that its command (and not some       *)
+(* The first `Gamma - 1' entries must be unmarked. The `Gamma'th entry is    *)
+(* marked with `q''s `rho' and `theta'. Prior to committing the `Gamma'th    *)
+(* entry, `q' must ascertain that the preceding `Gamma - 1' entries have     *)
+(* been chosen and are unmarked. If some other proposer commits a marked     *)
+(* entry, `q' must either accept the new privileged proposer or restart its  *)
+(* count. Proposing a marked entry does not imply that                       *)
+(* `q' will succeed; `q' must ascertain that its command (and not some       *)
 (* other proposer's) was committed to the last slot.                         *)
-(* This is done by checking that the `ρ' and `θ' match. Generally            *)
-(* speaking, any proposer that has committed a marked entry in slot `s' is   *)
-(* implicitly granted privileges over slots `(s + 1)..(s + Γ)'.              *)
+(* This is done by checking that the `rho' and `theta' match. Any proposer   *)
+(* that has committed a marked entry in slot `s' is implicitly granted       *)
+(* privileges over slots `(s + 1)..(s + Gamma)'.                             *)
 (*****************************************************************************)
-PromoteSelf(p) ==
-    /\  p \notin DOMAIN lastChosen
+PromoteSelf(q) ==
+    /\  q \notin DOMAIN lastChosen
     /\  LET highestProposed == HighestProposed
             nextVacant == IF highestProposed # 0 THEN highestProposed ELSE HighestCommitted + 1
-        IN  \E s \in 1..nextVacant, c \in Commands : \*TODO
+        IN  \E s \in 1..nextVacant, c \in Commands :
                 /\  s \in Slots
-                /\  IF AreNeutralOrMarked(Max(1, s - Gamma + 1)..(s - 1), p, theta[p]) THEN
-                        TrySubmitProposal(s, <<c, p, theta[p]>>, FALSE)
+                /\  IF AreNeutralOrMarked(Max(1, s - Gamma + 1)..(s - 1), q, theta[q]) THEN
+                        TrySubmitProposal(s, <<c, q, theta[q]>>, FALSE)
                     ELSE
                         TrySubmitProposal(s, <<c, Nil, Nil>>, FALSE)
-                /\  SetLastProposed(s, p)
+                /\  SetLastProposed(s, q)
     /\  UNCHANGED <<committed, theta, lastChosen>>
 
 (*****************************************************************************)
@@ -272,40 +269,39 @@ PromoteSelf(p) ==
 (* try to commit it by the slot-privilege it presumably holds.               *)
 (*                                                                           *)
 (* This scenario occurs when some non-privileged                             *)
-(* proposer `n' receives a command                                           *)
+(* proposer `q' receives a command                                           *)
 (* from a client, and decides that the best course of action is to forward   *)
 (* it to `p'. This is the optimal behaviour in the                           *)
 (* stable case, as serialising commands through a single proposer eliminates *)
-(* contention for log slots. However, `n' might mistake `p' for              *)
+(* contention for log slots. However, `q' might mistake `p' for              *)
 (* the privileged proposer when, in fact, `p''s status has since been        *)
 (* superseded by another proposer.                                           *)
 (*                                                                           *)
 (* Because the identity of the privileged proposer is discovered             *)
-(* by learning values, and `n' might not be privy to all values up to the    *)
+(* by learning values, and `q' might not be privy to all values up to the    *)
 (* end of the log, it is conceivable that `p' is not the most recent         *)
-(* privileged proposer, and should not fulfil `n''s request. We account for  *)
+(* privileged proposer, and should not fulfil `q''s request. We account for  *)
 (* all admissible behaviours by allowing commands to be forwarded            *)
 (* to any proposer, irrespective of whether or not it is privileged.         *)
 (*                                                                           *)
 (* The proxy `p' may only exercise its privilege when committing             *)
 (* a value in `s' if it has committed at least one marked value in the       *)
-(* slot range `(s - Γ)..(s - 1)' — a fact that it is intrinsically aware     *)
-(* of. The specification mimics this property by tracking two variables:     *)
+(* slot range `(s - Gamma)..(s - 1)' — a fact that it is intrinsically aware *)
+(* of. The specification fulfils this property by tracking two variables:    *)
 (* `lastProposed' and `lastChosen'. The commit status of prior slots         *)
 (* is asynchronously verified by `VerifyChosenProposal(p)', which updates    *)
 (* `lastChosen[p]' accordingly. If `p' has not ascertained its privilege     *)
-(* in the last `Γ' slots, it will halt until it has done so.                 *)
+(* in the last `Gamma' slots, it will halt until it has done so.             *)
 (* A real implementation will eventually time out and reply with a NACK. If  *)
-(* another proposer secures one of the prior `Γ' slots, and `p' observes     *)
+(* another proposer secures one of the prior `Gamma' slots, and `p' observes *)
 (* this, `p' should voluntarily disavow its status and                       *)
 (* NACK the forwarded request. Its status would also be dropped if `p' were  *)
 (* to restart. At any rate, the implementation should                        *)
 (* immediately NACK all forwarded requests if `p' is non-privileged.         *)
 (*                                                                           *)
 (* This specification does not model NACKs as this would only make the       *)
-(* forwarding proposer `n' try some other proposer                           *)
-(* or attempt to promote itself;                                             *)
-(* both actions are already adequately specified.                            *)
+(* forwarding proposer `q' try some other proposer or attempt to promote     *)
+(* itself; both actions are already adequately specified.                    *)
 (*****************************************************************************)
 ProposePrivileged(p) ==
     /\  p \in DOMAIN lastChosen
@@ -319,19 +315,19 @@ ProposePrivileged(p) ==
 
 (*****************************************************************************)
 (* Verifies that `p''s value proposed in slot `lastProposed[p]' or any of    *)
-(* the prior `Γ - 1' slots were chosen                                       *)
-(* by consensus, thereby extending `p''s privileged status by `Γ' slots from *)
-(* the last chosen slot marked by `p'.                                       *)
+(* the prior `Gamma - 1' slots were chosen                                   *)
+(* by consensus, thereby extending `p''s privileged status by `Gamma' slots  *)
+(* from the last chosen slot marked by `p'.                                  *)
 (*                                                                           *)
-(* Verification occurs when `p' learns of a result favouring `p' — some time *)
+(* Verification occurs when `p' learns of a result favouring `p' — sometime  *)
 (* after proposing the value.                                                *)
-(* Until this has been verified for slots `(s - Γ + 1)..(s)',                *)
+(* Until this has been verified for slots `(s - Gamma + 1)..(s)',            *)
 (* `p' is blocked from using its privilege in `s + 1'. (`p' halts until      *)
 (* it has a confirmation of a marked commit in that range.)                  *)
 (* A practical implementation should also consider the case where some other *)
 (* proposer supersedes `p' by committing a marked value. The                 *)
 (* implementation may simply reset `p' — yielding its status and             *)
-(* incrementing the theta. The specification disregards this case because    *)
+(* incrementing its `theta'. The specification disregards this case because  *)
 (* the next-state action `Reset(p)' already covers this indirectly.          *)
 (*****************************************************************************)
 VerifyChosenProposal(p) ==
@@ -351,17 +347,17 @@ VerifyChosenProposal(p) ==
 (* a fail-stop, followed by reinitialisation.                                *)
 (*                                                                           *)
 (* A reset is also useful is when `p' determines that some                   *)
-(* other proposer has acquired privileged status. In this case `p'           *)
+(* other proposer has acquired privileged status. In this case, `p'          *)
 (* should voluntarily yield its status — an equivalent of a reset.           *)
 (*                                                                           *)
 (* Upon restart, the `p' will disregard any prior privileged status. Its     *)
-(* theta will be incremented, so that any privilege status acquired within   *)
-(* the new theta will be distinct from the previous. This ensures that a     *)
-(* proposer never uses its slot-privilege twice.                             *)
+(* `theta' will be incremented, so that any privileged status acquired       *)
+(* within the new `theta' will be distinct from the previous. This ensures   *)
+(* that a proposer never uses its slot-privilege twice.                      *)
 (*****************************************************************************)
 Reset(p) ==
     \* Only reset a proposer if it might be privileged. Resetting a non-privileged
-    \* proposer would have no effect, other than to increment its theta.
+    \* proposer would have no effect, other than to increment its `theta'.
     /\  p \in DOMAIN lastProposed
     /\  theta[p] + 1 \in Thetas
     /\  lastProposed' = [d \in DOMAIN lastProposed \ {p} |-> lastProposed[d]]
@@ -381,9 +377,9 @@ Init ==
 
 (*****************************************************************************)
 (* A special 'marker' state that signifies that the algorithm has            *)
-(* terminated due to the exhaustion of the allowed slot numbers. It is       *)
-(* useful for bounded model checking (where `Slots' is replaced with a       *)
-(* finite set).                                                              *)
+(* terminated due to the exhaustion of the allowed slot numbers or `theta'   *)
+(* increments. It is useful for bounded model checking (where `Slots' and    *)
+(* `Thetas' are replaced with a finite set).                                 *)
 (*                                                                           *)
 (* This pseudo-action has no bearing on the operation of the algorithm,      *)
 (* other than to prevent TLC from flagging a deadlock due to the absence     *)

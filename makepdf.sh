@@ -25,3 +25,4 @@ opts=" -number -shade -grayLevel .95"
 java -cp  $tools_path tla2tex.TLA $opts $module.tla
 java -cp  $tools_path tla2tex.TeX $module.tex
 pdflatex -interaction scrollmode $module.tex || echo "Done with exit code $?"
+rm $module.aux $module.dvi $module.log $module.old $module.ps $module.tex

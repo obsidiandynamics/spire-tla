@@ -34,6 +34,6 @@ pdf:
 	TOOLS_PATH=${tools_path} ./makepdf.sh SPSafe
 
 clean:
-	rm *.dot *.out *.aux *.dot *.dvi *.log *.old *.out *.pdf *.ps *.tx
+	rm *.dot *.out *.dot *.pdf || true
 
 FORCE:

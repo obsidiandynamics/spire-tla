@@ -430,9 +430,8 @@ LEMMA ValuePropagation ==
 
 (*****************************************************************************)
 (* If a set of values `V' is not offered in round `r', then it is also not   *)
-(* offered in `r + 1'. This is a set-oriented variant of                     *)
-(* `ValuePropagation' that is used as the basis for an induction proof of    *)
-(* of `NotOfferedInSuffix'.                                                  *)
+(* offered in `r + 1'. This is a set-oriented variant of `ValuePropagation'  *)
+(* that is used to support the proof of `NotOfferedInSuffix' by induction.   *)
 (*****************************************************************************)
 LEMMA NotOfferedInCarry ==
     TypeOK /\ MsgInv =>
@@ -460,7 +459,7 @@ LEMMA NotOfferedInCarry ==
 
 (*****************************************************************************)
 (* If a set of values `V' is not offered in some round `r1', then it is not  *)
-(* offered in any round `r2' where `r2' is greater than or equal to `r1'.    *)
+(* offered in any round `r2',  where `r2' is greater than or equal to `r1'.  *)
 (*                                                                           *)
 (* The proof is by naturals induction of `NotOfferedInCarry'.                *)
 (*****************************************************************************)  
@@ -486,7 +485,7 @@ LEMMA NotOfferedInSuffix ==
 (* in `r' by at least one answer.                                            *)
 (*                                                                           *)
 (* Proof is straightforward by the quorum intersection property and the      *)
-(* constraint that a consenter may vote at most once in any given round.     *)
+(* invariant that a consenter may vote at most once in any given round.      *)
 (*****************************************************************************)
 LEMMA RoundAnswersOverlap ==
     ConsInv =>
@@ -545,20 +544,20 @@ LEMMA ChosenCarry ==
                      PROVE   n.val = v1
       BY DEF MsgInv, Rounds
     \* Where the next-round `r + 1' offer is primed, the quorum-answers in `r' must
-    \* therefore have been uniform. Because `r' contained the chosen answer `v1', every
+    \* have been uniform. Because `r' contained the chosen answer `v1', every
     \* set of quorum-answers in `r' must contain at least one answer with `v1' by
     \* lemma `RoundAnswersOverlap'. Seeing that `B' is uniform, then all answers in 
     \* `B' contain `v1'. 
     <2>1.CASE n.primed
       <3>1 PICK R \in Quorums : \E B \in QuorumAnswers(R) :
-              /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
-              /\  n.val = PickValue(B)
-              /\  n.round = PickRound(B) + 1
+                /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
+                /\  n.val = PickValue(B)
+                /\  n.round = PickRound(B) + 1
         BY <2>1
       <3>2 PICK B \in QuorumAnswers(R) : 
-              /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
-              /\  n.val = PickValue(B)
-              /\  n.round = PickRound(B) + 1
+                /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
+                /\  n.val = PickValue(B)
+                /\  n.round = PickRound(B) + 1
         BY <3>1
       <3>3 \A m1, m2 \in B : m1.lastRound = m2.lastRound
         BY <3>2 DEF AllIdenticalRounds
@@ -587,8 +586,7 @@ LEMMA ChosenCarry ==
     \* set of quorum-answers in `r' must contain a primed `v1' by lemma 
     \* `RoundAnswersOverlap'. Furthermore, by
     \* lemma `SingularityOfPrimedRoundAnswers', no value other than `v1' may be primed
-    \* in `r'. By the image of `SuccessorValues', the sole successor value must
-    \* therefore be `v1'.
+    \* in `r'. By the image of `SuccessorValues', the sole successor value must be `v1'.
     <2>2 CASE ~n.primed
       <3>1 PICK R \in Quorums : \E B \in QuorumAnswers(R) :
               /\  AllIdenticalRounds(B)
@@ -643,7 +641,7 @@ LEMMA ChosenCarry ==
       <3>24 HIDE DEF highestRoundAnswers, highestRoundPrimedAnswers
       <3>25 QED
         BY <3>2, <3>23
-    <2>3. QED
+    <2>3 QED
       BY <2>1, <2>2
   <1>4 QED 
     BY <1>3
@@ -743,7 +741,7 @@ LEMMA Consistent == Inv => Consistency
 (*****************************************************************************)
 (* The inductive invariant `Inv' is preserved when `vars' is unchanged.      *)
 (*                                                                           *)
-(* The result is trivially determined, and has been extracted into a         *)
+(* The result is trivially determined and has been extracted into a          *)
 (* separate lemma for convenience and reuse.                                 *)
 (*****************************************************************************)
 LEMMA InvariantPreservedOnUnchanged ==
@@ -752,27 +750,26 @@ LEMMA InvariantPreservedOnUnchanged ==
                PROVE  Inv'
     OBVIOUS
   <1> USE DEF Inv, vars
-  <1>1. (msgs \in SUBSET Messages)'
+  <1>1 (msgs \in SUBSET Messages)'
     OBVIOUS
-  <1>2. MsgInv'
+  <1>2 MsgInv'
     BY DEF MsgInv, QuorumAnswers, Answers
-  <1>3. (lastVal \in [Consenters -> Values \union {None}])'
+  <1>3 (lastVal \in [Consenters -> Values \union {None}])'
     OBVIOUS
-  <1>4. (lastRound \in [Consenters -> Rounds \union {-1}])'
+  <1>4 (lastRound \in [Consenters -> Rounds \union {-1}])'
     OBVIOUS
-  <1>5. (lastPrimed \in [Consenters -> BOOLEAN])'
+  <1>5 (lastPrimed \in [Consenters -> BOOLEAN])'
     OBVIOUS
-  <1>6. ConsInv'
+  <1>6 ConsInv'
     BY DEF ConsInv
-  <1>7. QED
+  <1>7 QED
     BY <1>1, <1>2, <1>3, <1>4, <1>5, <1>6 DEF Inv
 
 (*****************************************************************************)
 (* Preservation of the inductive invariant.                                  *)
 (*                                                                           *)
 (* Starting from any state that satisfies the inductive invariant `Inv', all *)
-(* enabled transitions will result in some successor state that also         *)
-(* satisfies `Inv'.                                                          *)
+(* transitions will result in a successor state that also satisfies `Inv'.   *)
 (*****************************************************************************)
 LEMMA Inductive == Inv /\ Next => Inv'
   <1> SUFFICES ASSUME Inv,
@@ -780,10 +777,10 @@ LEMMA Inductive == Inv /\ Next => Inv'
                PROVE  Inv'
     OBVIOUS
   <1> USE DEF Inv, Next
-  <1>1. CASE Offer
+  <1>1 CASE Offer
     <2> USE DEF Offer
-    <2>1. (msgs \in SUBSET Messages)'
-      <3>1. ASSUME NEW Q \in Quorums,
+    <2>1 (msgs \in SUBSET Messages)'
+      <3>1 ASSUME NEW Q \in Quorums,
                    NEW A \in QuorumAnswers(Q),
                    IF AllIdenticalRounds(A) THEN
                        IF AllPrimed(A) THEN
@@ -844,7 +841,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
             BY <1>1, <3>1, <4>5, <5>4, <5>6 DEF TrySend, Send
         <4>6 QED
           BY <1>1, <3>1, <4>4, <4>5
-      <3>2. ASSUME NEW v \in Values,
+      <3>2 ASSUME NEW v \in Values,
                    TrySend([type |-> "Offer", val |-> v, round |-> 0, primed |-> FALSE])
             PROVE  (msgs \in SUBSET Messages)'
         <4>1 DEFINE n == [type |-> "Offer", val |-> v, round |-> 0, primed |-> FALSE]
@@ -852,11 +849,11 @@ LEMMA Inductive == Inv /\ Next => Inv'
           BY DEF Messages, Rounds
         <4>3 QED
           BY <1>1, <3>2, <4>2 DEF Messages, TrySend, Send
-      <3>3. QED
+      <3>3 QED
         BY <1>1, <3>1, <3>2
-    <2>2. MsgInv'
+    <2>2 MsgInv'
       <3> USE DEF MsgInv
-      <3>1. ASSUME NEW Q \in Quorums,
+      <3>1 ASSUME NEW Q \in Quorums,
                    NEW A \in QuorumAnswers(Q),
                    IF AllIdenticalRounds(A) THEN
                        IF AllPrimed(A) THEN
@@ -897,7 +894,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
                                              /\  o.val = m.lastVal
                                              /\  o.primed = m.lastPrimed)'
               BY DEF MsgInv
-            <6>1. (m.type = "Offer" =>
+            <6>1 (m.type = "Offer" =>
                        /\  m.round = 0 => ~m.primed
                        /\  m.round # 0 =>
                                /\ m.primed => 
@@ -912,10 +909,10 @@ LEMMA Inductive == Inv /\ Next => Inv'
                                        /\  m.round = PickRound(B) + 1)'
               <7>1 msgs' = msgs \union {[type |-> "Offer", val |-> PickValue(A), round |-> PickRound(A) + 1, primed |-> TRUE]}
                 BY <3>1, <4>4, <5>1 DEF TrySend, Send
-              \* Round-0 case holds for existing messages. For new messages, a round-0 offer is never issued in the case of 
+              \* Round-zero case holds for existing messages. For new messages, a round-zero offer is never issued in the case of 
               \* `AllIdenticalRounds(A) /\ AllIdenticalValues(A)' because `PickRound(A) + 1' results in a round number 
               \* that exceeds 0.
-              <7>2. CASE m.type = "Offer" /\ m.round = 0
+              <7>2 CASE m.type = "Offer" /\ m.round = 0
                 <8>1 A \in SUBSET Messages /\ A # {} /\ \A a \in A : a.lastRound \in Rounds
                   BY <3>1, QuorumAssumption DEF QuorumAnswers, Answers, Messages
                 <8>2 PickRound(A) \in Rounds
@@ -934,8 +931,8 @@ LEMMA Inductive == Inv /\ Next => Inv'
                 <8>3 QED
                   BY <8>1, <8>2
               \* Non-zero round with an unprimed offer: either `m' is in `msgs' (the invariant is implicitly 
-              \* preserved), or the newly sent message `m' is primed — a contradiction of the `~m.primed' conjunct
-              \* in this case.
+              \* preserved), or the newly sent message `m' is primed — a contradiction of the ` ~m.primed'
+              \* conjunct in this case.
               <7>4 CASE m.type = "Offer" /\ m.round # 0 /\ ~m.primed
                 <8>2 CASE m \in msgs
                   <9>1 ~m.primed
@@ -946,16 +943,16 @@ LEMMA Inductive == Inv /\ Next => Inv'
                   BY <3>1, <4>4, <7>1, <7>4, <8>3 DEF QuorumAnswers, Answers
                 <8>4 QED
                   BY <8>2, <8>3, <7>4
-              <7>5. QED
+              <7>5 QED
                 BY <7>2, <7>3, <7>4
-            <6>2. (m.type = "Answer" =>
+            <6>2 (m.type = "Answer" =>
                        \E o \in msgs : 
                              /\  o.type = "Offer"
                              /\  o.round = m.lastRound
                              /\  o.val = m.lastVal
                              /\  o.primed = m.lastPrimed)'
               BY <3>1, <4>4, <5>1 DEF TrySend, Send
-            <6>3. QED
+            <6>3 QED
               BY <6>1, <6>2
           <5>2 CASE ~AllIdenticalValues(A)
             <6> SUFFICES ASSUME NEW m \in msgs'
@@ -979,7 +976,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
                                                /\  o.val = m.lastVal
                                                /\  o.primed = m.lastPrimed)'
               BY DEF MsgInv
-            <6>1. (m.type = "Offer" =>
+            <6>1 (m.type = "Offer" =>
                        /\  m.round = 0 => ~m.primed
                        /\  m.round # 0 =>
                                /\ m.primed => 
@@ -995,10 +992,10 @@ LEMMA Inductive == Inv /\ Next => Inv'
               <7>1 \E v \in SuccessorValues(A) : 
                         msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> PickRound(A) + 1, primed |-> FALSE]}
                 BY <3>1, <4>4, <5>2 DEF TrySend, Send
-              \* Round-0 case holds for existing messages. For new messages, a round-0 offer is never issued in the case of 
+              \* Round-zero case holds for existing messages. For new messages, a round-zero offer is never issued in the case of 
               \* `AllIdenticalRounds(A) /\ ~AllIdenticalValues(A)' because `PickRound(A) + 1' results in a round number 
               \* that exceeds 0.
-              <7>2. CASE m.type = "Offer" /\ m.round = 0
+              <7>2 CASE m.type = "Offer" /\ m.round = 0
                 BY <7>1, <7>2
               \* Non-zero round with a primed offer: Either `m' is in `msgs' (the invariant is implicitly 
               \* preserved), or the newly sent message `m' is unprimed (a contradiction in this case).
@@ -1032,9 +1029,9 @@ LEMMA Inductive == Inv /\ Next => Inv'
                     BY <7>4, <9>2, <9>3, <9>4
                 <8>4 QED
                   BY <7>4, <8>2, <8>3
-              <7>5. QED
+              <7>5 QED
                 BY <7>2, <7>3, <7>4
-            <6>2. (m.type = "Answer" =>
+            <6>2 (m.type = "Answer" =>
                        \E o \in msgs : 
                            /\  o.type = "Offer"
                            /\  o.round = m.lastRound
@@ -1046,7 +1043,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
                 BY <3>1, <4>4, <5>2 DEF TrySend, Send
               <7>2 QED
                 BY <7>1
-            <6>3. QED
+            <6>3 QED
               BY <6>1, <6>2
           <5>3 QED
             BY <1>1, <3>1, <4>4, <5>1, <5>2
@@ -1072,7 +1069,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
                                             /\  o.val = m.lastVal
                                             /\  o.primed = m.lastPrimed)'
             BY DEF MsgInv
-          <5>1. (m.type = "Offer" =>
+          <5>1 (m.type = "Offer" =>
                      /\  m.round = 0 => ~m.primed
                      /\  m.round # 0 =>
                              /\ m.primed => 
@@ -1088,9 +1085,9 @@ LEMMA Inductive == Inv /\ Next => Inv'
             <6>1 \E v \in SuccessorValues(A) : 
                       msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> MaxLastRound(A), primed |-> FALSE]}
               BY <3>1, <4>5 DEF TrySend, Send
-            \* Round-0 case holds for existing messages, and the newly sent message is
+            \* Round-zero case holds for existing messages, and the newly sent message is
             \* not in round 0 as the quorum-answer `A' spans multiple rounds and `MaxLastRound(A)'
-            \* will therefore be greater than 0.
+            \* is greater than 0.
             <6>2 CASE m.type = "Offer" /\ m.round = 0
               BY <6>1, <6>2
             \* Non-zero round with primed offer: holds for existing messages and the newly sent
@@ -1153,26 +1150,26 @@ LEMMA Inductive == Inv /\ Next => Inv'
                 <8>15 m.type = "Offer" /\ m.round # 0 /\ ~m.primed
                   BY <8>1, <8>13
                 <8>16 o.primed => \E R \in Quorums : \E B \in QuorumAnswers(R) :
-                                       /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
-                                       /\  o.val = PickValue(B)
-                                       /\  o.round = PickRound(B) + 1
+                                        /\  AllIdenticalRounds(B) /\ AllIdenticalValues(B)
+                                        /\  o.val = PickValue(B)
+                                        /\  o.round = PickRound(B) + 1
                   BY <3>1, <8>10, <8>12, <8>13
                 <8>17 CASE o.primed
                   <9>1 (\E R \in Quorums : \E B \in QuorumAnswers(R) :
-                             /\  AllIdenticalRounds(B)
-                             /\  m.val \in SuccessorValues(B)
-                             /\  m.round = PickRound(B) + 1)'
+                            /\  AllIdenticalRounds(B)
+                            /\  m.val \in SuccessorValues(B)
+                            /\  m.round = PickRound(B) + 1)'
                     \* When `o' is primed, the source quorum-answer set must be uniform (all identical
-                    \* rounds and values). A uniform set of answers leads to a single successor value,
-                    \* therefore `SuccessorValues(B)' must be a singleton set containing `PickValue(B)'.
+                    \* rounds and values). A uniform set of answers leads to a single successor value;
+                    \* therefore, `SuccessorValues(B)' must be a singleton set containing `PickValue(B)'.
                     BY <8>13, <8>14, <8>16, <8>17, SingularityOfSuccessorsToUniformAnswers, QuorumAssumption 
                        DEF QuorumAnswers, Answers
                   <9>2 QED
                     BY <9>1, <8>15
                 <8>18 ~o.primed => \E R \in Quorums : \E B \in QuorumAnswers(R) :
-                                       /\  AllIdenticalRounds(B)
-                                       /\  o.val \in SuccessorValues(B)
-                                       /\  o.round = PickRound(B) + 1
+                                        /\  AllIdenticalRounds(B)
+                                        /\  o.val \in SuccessorValues(B)
+                                        /\  o.round = PickRound(B) + 1
                   BY <3>1, <8>10, <8>12, <8>13
                 <8>19 CASE ~o.primed
                   BY <8>13, <8>14, <8>15, <8>18, <8>19 DEF QuorumAnswers, Answers
@@ -1182,49 +1179,49 @@ LEMMA Inductive == Inv /\ Next => Inv'
                 QED BY <7>1, <7>2
             <6>5 QED 
               BY <6>2, <6>3, <6>4
-          <5>2. (m.type = "Answer" =>
-                     \E o \in msgs : 
-                         /\  o.type = "Offer"
-                         /\  o.round = m.lastRound
-                         /\  o.val = m.lastVal
-                         /\  o.primed = m.lastPrimed)'
+          <5>2 (m.type = "Answer" =>
+                    \E o \in msgs : 
+                        /\  o.type = "Offer"
+                        /\  o.round = m.lastRound
+                        /\  o.val = m.lastVal
+                        /\  o.primed = m.lastPrimed)'
             \* Existing messages are preserved and the sent message is an offer.
             <6>1 \E v \in SuccessorValues(A) : 
                       msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> MaxLastRound(A), primed |-> FALSE]}
               BY <3>1, <4>5 DEF TrySend, Send
             <6>2 QED
               BY <6>1
-          <5>3. QED
+          <5>3 QED
             BY <5>1, <5>2
         <4>6 QED
           BY <1>1, <3>1, <4>4, <4>5
-      <3>2. ASSUME NEW v \in Values,
+      <3>2 ASSUME NEW v \in Values,
                    TrySend([type |-> "Offer", val |-> v, round |-> 0, primed |-> FALSE])
             PROVE  MsgInv'
         <4> SUFFICES ASSUME NEW m \in msgs'
                      PROVE  (/\  m.type = "Offer" =>
-                                   /\  m.round = 0 => ~m.primed
-                                   /\  m.round # 0 =>
-                                         /\ m.primed =>
-                                             \E Q \in Quorums : \E A \in QuorumAnswers(Q) :
-                                                 /\  AllIdenticalRounds(A) /\ AllIdenticalValues(A)
-                                                 /\  m.val = PickValue(A)
-                                                 /\  m.round = PickRound(A) + 1
-                                         /\ ~m.primed =>
-                                             \E Q \in Quorums : \E A \in QuorumAnswers(Q) :
-                                                 /\  AllIdenticalRounds(A)
-                                                 /\  m.val \in SuccessorValues(A)
-                                                 /\  m.round = PickRound(A) + 1
+                                    /\  m.round = 0 => ~m.primed
+                                    /\  m.round # 0 =>
+                                            /\ m.primed =>
+                                                \E Q \in Quorums : \E A \in QuorumAnswers(Q) :
+                                                    /\  AllIdenticalRounds(A) /\ AllIdenticalValues(A)
+                                                    /\  m.val = PickValue(A)
+                                                    /\  m.round = PickRound(A) + 1
+                                            /\ ~m.primed =>
+                                                \E Q \in Quorums : \E A \in QuorumAnswers(Q) :
+                                                    /\  AllIdenticalRounds(A)
+                                                    /\  m.val \in SuccessorValues(A)
+                                                    /\  m.round = PickRound(A) + 1
                              /\  m.type = "Answer" =>
-                                   \E o \in msgs : 
-                                         /\  o.type = "Offer"
-                                         /\  o.round = m.lastRound
-                                         /\  o.val = m.lastVal
-                                         /\  o.primed = m.lastPrimed)'
+                                    \E o \in msgs : 
+                                        /\  o.type = "Offer"
+                                        /\  o.round = m.lastRound
+                                        /\  o.val = m.lastVal
+                                        /\  o.primed = m.lastPrimed)'
           BY DEF MsgInv
         <4>1 msgs' = msgs \union {[type |-> "Offer", val |-> v, round |-> 0, primed |-> FALSE]}
           BY <3>2 DEF TrySend, Send
-        <4>2. (m.type = "Offer" =>
+        <4>2 (m.type = "Offer" =>
                    /\  m.round = 0 => ~m.primed
                    /\  m.round # 0 =>
                            /\ m.primed => 
@@ -1240,7 +1237,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
           \* The sent offer `m' is unprimed and for round 0, which directly satisfies the goal
           \* `m.type = "Offer" /\ m.round = 0 => ~m.primed'.
           BY <3>2, <4>1 DEF QuorumAnswers, Answers, AllIdenticalRounds, AllIdenticalValues
-        <4>3. (m.type = "Answer" =>
+        <4>3 (m.type = "Answer" =>
                    \E o \in msgs : 
                        /\  o.type = "Offer"
                        /\  o.round = m.lastRound
@@ -1248,17 +1245,17 @@ LEMMA Inductive == Inv /\ Next => Inv'
                        /\  o.primed = m.lastPrimed)'
           \* Existing messages are preserved and the sent message is an offer.
           BY <4>1
-        <4>4. QED
+        <4>4 QED
           BY <4>2, <4>3
-      <3>3. QED
+      <3>3 QED
         BY <1>1, <3>1, <3>2
-    <2>3. (lastVal \in [Consenters -> Values \union {None}])'
+    <2>3 (lastVal \in [Consenters -> Values \union {None}])'
       BY <1>1 DEF TrySend
-    <2>4. (lastRound \in [Consenters -> Rounds \union {-1}])'
+    <2>4 (lastRound \in [Consenters -> Rounds \union {-1}])'
       BY <1>1 DEF TrySend
-    <2>5. (lastPrimed \in [Consenters -> BOOLEAN])'
+    <2>5 (lastPrimed \in [Consenters -> BOOLEAN])'
       BY <1>1 DEF TrySend
-    <2>6. ConsInv'
+    <2>6 ConsInv'
       <3> SUFFICES ASSUME NEW c \in Consenters'
                    PROVE  (/\  lastRound[c] = -1 <=> lastVal[c] = None
                            /\  lastRound[c] = -1 => ~lastPrimed[c]
@@ -1275,19 +1272,19 @@ LEMMA Inductive == Inv /\ Next => Inv'
                                        => m1 = m2)'
         BY DEF ConsInv
       <3> USE DEF ConsInv
-      <3>1. (lastRound[c] = -1 <=> lastVal[c] = None)'
+      <3>1 (lastRound[c] = -1 <=> lastVal[c] = None)'
         BY <1>1
-      <3>2. (lastRound[c] = -1 => ~lastPrimed[c])'
+      <3>2 (lastRound[c] = -1 => ~lastPrimed[c])'
         BY <1>1
-      <3>3. (lastRound[c] # -1 => \E m \in msgs : 
+      <3>3 (lastRound[c] # -1 => \E m \in msgs : 
                  /\  m.type = "Answer" 
                  /\  m.cons = c 
                  /\  m.lastRound = lastRound[c]
                  /\  m.lastVal = lastVal[c]
                  /\  m.lastPrimed = lastPrimed[c])'
         BY <1>1 DEF TrySend, Send
-      <3>4. (~\E m \in msgs : m.type = "Answer" /\ m.cons = c /\ m.lastRound > lastRound[c])'
-        <4>1. ASSUME NEW Q \in Quorums,
+      <3>4 (~\E m \in msgs : m.type = "Answer" /\ m.cons = c /\ m.lastRound > lastRound[c])'
+        <4>1 ASSUME NEW Q \in Quorums,
                      NEW A \in QuorumAnswers(Q),
                      IF AllIdenticalRounds(A) THEN
                          IF AllPrimed(A) THEN
@@ -1318,7 +1315,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
             BY <5>1
           <5>3 QED
             BY <1>1, <4>1, <5>2
-        <4>2. ASSUME NEW v \in Values,
+        <4>2 ASSUME NEW v \in Values,
                      TrySend([type |-> "Offer", val |-> v, round |-> 0, primed |-> FALSE])
               PROVE  (~\E m \in msgs : m.type = "Answer" /\ m.cons = c /\ m.lastRound > lastRound[c])'
           \* The sent message can only be an offer.
@@ -1326,13 +1323,13 @@ LEMMA Inductive == Inv /\ Next => Inv'
             BY <4>2 DEF TrySend, Send
           <5>2 QED
             BY <1>1, <4>1, <5>1
-        <4>3. QED
+        <4>3 QED
           BY <1>1, <4>1, <4>2
-      <3>5. (\A m1, m2 \in msgs :
+      <3>5 (\A m1, m2 \in msgs :
                  m1.type = "Answer" /\ m2.type = "Answer" /\ m1.cons = c /\ m2.cons = c /\ 
                  m1.lastRound = m2.lastRound 
                     => m1 = m2)'
-        <4>1. ASSUME NEW Q \in Quorums,
+        <4>1 ASSUME NEW Q \in Quorums,
                      NEW A \in QuorumAnswers(Q),
                      IF AllIdenticalRounds(A) THEN
                          IF AllPrimed(A) THEN
@@ -1366,9 +1363,9 @@ LEMMA Inductive == Inv /\ Next => Inv'
             BY <5>1
           <5>3 QED
             BY <1>1, <4>1, <5>2
-        <4>2. ASSUME NEW v \in Values,
+        <4>2 ASSUME NEW v \in Values,
                      TrySend([type |-> "Offer", val |-> v, round |-> 0, primed |-> FALSE])
-              PROVE  (\A m1, m2 \in msgs :
+             PROVE  (\A m1, m2 \in msgs :
                           m1.type = "Answer" /\ m2.type = "Answer" /\ m1.cons = c /\ m2.cons = c /\ 
                           m1.lastRound = m2.lastRound 
                               => m1 = m2)'
@@ -1377,13 +1374,13 @@ LEMMA Inductive == Inv /\ Next => Inv'
             BY <4>2 DEF TrySend, Send
           <5>2 QED
             BY <1>1, <4>1, <5>1
-        <4>3. QED
+        <4>3 QED
           BY <1>1, <4>1, <4>2
-      <3>6. QED
+      <3>6 QED
         BY <3>1, <3>2, <3>3, <3>4, <3>5
-    <2>7. QED
+    <2>7 QED
       BY <2>1, <2>2, <2>3, <2>4, <2>5, <2>6 DEF Inv
-  <1>2. ASSUME NEW c \in Consenters,
+  <1>2 ASSUME NEW c \in Consenters,
                NEW m \in msgs,
                /\  m.type = "Offer"
                /\  m.round > lastRound[c]
@@ -1391,11 +1388,11 @@ LEMMA Inductive == Inv /\ Next => Inv'
                /\  lastVal' = [lastVal EXCEPT ![c] = m.val]
                /\  lastPrimed' = [lastPrimed EXCEPT ![c] = m.primed]
                /\  Send([type |-> "Answer", cons |-> c, lastVal |-> m.val, lastRound |-> m.round, lastPrimed |-> m.primed])
-        PROVE  Inv'
+       PROVE  Inv'
     <2> USE DEF Answer
-    <2>1. (msgs \in SUBSET Messages)'
+    <2>1 (msgs \in SUBSET Messages)'
       BY <1>2 DEF Send, Messages
-    <2>2. MsgInv'
+    <2>2 MsgInv'
       <3> SUFFICES ASSUME NEW n \in msgs'
                    PROVE  (  /\  n.type = "Offer" =>
                                      /\  n.round = 0 => ~n.primed
@@ -1418,7 +1415,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
                                            /\  o.primed = n.lastPrimed)'
         BY DEF MsgInv
       <3> USE DEF MsgInv
-      <3>1. (n.type = "Offer" =>
+      <3>1 (n.type = "Offer" =>
                /\  n.round = 0 => ~n.primed
                /\  n.round # 0 =>
                        /\ n.primed => 
@@ -1431,7 +1428,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
                                  /\  AllIdenticalRounds(A)
                                  /\  n.val \in SuccessorValues(A)
                                  /\  n.round = PickRound(A) + 1)'
-         \* Message `n' is in `msgs', therefore invariant is implicitly preserved.
+         \* Message `n' is in `msgs'; therefore, invariant is implicitly preserved.
          <4>1 CASE n \in msgs
            BY <1>2, <4>1 DEF Send, Messages, QuorumAnswers, Answers
          \* Sent message `n' is not an offer. 
@@ -1439,22 +1436,22 @@ LEMMA Inductive == Inv /\ Next => Inv'
            BY <1>2, <4>2 DEF Send
          <4>3 QED
            BY <4>2, <4>1
-      <3>2. (n.type = "Answer" =>
+      <3>2 (n.type = "Answer" =>
                    \E o \in msgs : 
                          /\  o.type = "Offer"
                          /\  o.round = n.lastRound
                          /\  o.val = n.lastVal
                          /\  o.primed = n.lastPrimed)'
         BY <1>2 DEF Send
-      <3>3. QED
+      <3>3 QED
         BY <3>1, <3>2
-    <2>3. (lastVal \in [Consenters -> Values \union {None}])'
+    <2>3 (lastVal \in [Consenters -> Values \union {None}])'
       BY <1>2 DEF Send, Messages
-    <2>4. (lastRound \in [Consenters -> Rounds \union {-1}])'
+    <2>4 (lastRound \in [Consenters -> Rounds \union {-1}])'
       BY <1>2 DEF Send, Messages
-    <2>5. (lastPrimed \in [Consenters -> BOOLEAN])'
+    <2>5 (lastPrimed \in [Consenters -> BOOLEAN])'
       BY <1>2 DEF Send, Messages
-    <2>6. ConsInv'
+    <2>6 ConsInv'
       <3> SUFFICES ASSUME NEW d \in Consenters'
                    PROVE  (/\  lastRound[d] = -1 <=> lastVal[d] = None
                            /\  lastRound[d] = -1 => ~lastPrimed[d]
@@ -1473,14 +1470,14 @@ LEMMA Inductive == Inv /\ Next => Inv'
         BY DEF ConsInv
       <3> USE DEF ConsInv
       \* The equivalence between `lastRound[d] = -1' and `lastVal[d] = None'.
-      <3>1. (lastRound[d] = -1 <=> lastVal[d] = None)'
-        \* No assignment to `lastRound[d]' and `lastVal[d]' in `Answer(c)', therefore implicitly true.
+      <3>1 (lastRound[d] = -1 <=> lastVal[d] = None)'
+        \* No assignment to `lastRound[d]' and `lastVal[d]' in `Answer(c)'; therefore, implicitly true.
         <4>1 CASE d # c
           BY <1>2, <4>1
         \* Assignment: `lastRound[d]' must have been assigned a round that is 
         \* greater than `-1' by the `Messages' type-correctness invariant and 
         \* `lastVal[d]' is assigned a value that is not `None'
-        \* by lemma `NoneNotAValue'. `-1' and `None' cannot be used for assignent at a
+        \* by lemma `NoneNotAValue'. `-1' and `None' cannot be used for assigmnent at a
         \* later point because no valid offer `o' permits `o.val = None' or 
         \* `o.round = -1' by the definition of `Messages'.
         <4>2 CASE d = c
@@ -1494,11 +1491,11 @@ LEMMA Inductive == Inv /\ Next => Inv'
           BY <4>1, <4>2
       \* `lastPrimed[d]' is `FALSE' when `lastRound[d]' is not set, which is shown
       \* by monotonic assignment: all rounds assigned to `lastRound[d]' are greater
-      \* than the previous, therefore `lastRound[d]' cannot be `-1' after it transitions past
+      \* than the previous; therefore, `lastRound[d]' cannot be `-1' after it transitions past
       \* its initial state, and the falseness of `lastPrimed[d]' in that state
-      \* is guaranteed by `ConsInv'.
-      <3>2. (lastRound[d] = -1 => ~lastPrimed[d])'
-        \* No assignment to `lastRound[d]' and `lastVal[d]', therefore implicitly true.
+      \* is assured by `ConsInv'.
+      <3>2 (lastRound[d] = -1 => ~lastPrimed[d])'
+        \* No assignment to `lastRound[d]' and `lastVal[d]'; therefore, implicitly true.
         <4>1 CASE d # c
           BY <1>2, <4>1
         \* Assignment: true by monotonicity of `lastPrimed[d]'.
@@ -1508,7 +1505,7 @@ LEMMA Inductive == Inv /\ Next => Inv'
           BY <4>1, <4>2
       \* For any answer, there must be a corresponding offer in the same round,
       \* bearing the same value and primed status.
-      <3>3. (lastRound[d] # -1 => \E a \in msgs : 
+      <3>3 (lastRound[d] # -1 => \E a \in msgs : 
                  /\  a.type = "Answer" 
                  /\  a.cons = d 
                  /\  a.lastRound = lastRound[d]
@@ -1534,28 +1531,28 @@ LEMMA Inductive == Inv /\ Next => Inv'
             BY <1>2, <5>3 DEF Send
         <4>3 QED
           BY <4>1, <4>2
-      \* A consenter `d' cannot have sent an answer in a round that exceeds `lastRound[d]',
+      \* A consenter `d' must not have sent an answer in a round that exceeds `lastRound[d]',
       \* which is ensured by monotonic assignment to `lastRound[d]'.
-      <3>4. (~\E n \in msgs : n.type = "Answer" /\ n.cons = d /\ n.lastRound > lastRound[d])'
+      <3>4 (~\E n \in msgs : n.type = "Answer" /\ n.cons = d /\ n.lastRound > lastRound[d])'
         BY <1>2 DEF Send, Messages, Rounds
-      \* A consenter `d' must not have voted twice, which is ensured by exclusive 
-      \* assignment to `lastRound[d]'. I.e. for any round `r', only one `Answer' 
+      \* A consenter `d' must not not have voted twice, which is ensured by exclusive 
+      \* assignment to `lastRound[d]'. I.e., for any round `r', only one `Answer' 
       \* transition permits the assignment of `r' to `lastRound[d]'.
-      <3>5. (\A m1, m2 \in msgs :
+      <3>5 (\A m1, m2 \in msgs :
                  m1.type = "Answer" /\ m2.type = "Answer" /\ m1.cons = d /\ m2.cons = d /\ 
                  m1.lastRound = m2.lastRound 
                     => m1 = m2)'
         BY <1>2 DEF Send, Messages
-      <3>6. QED
+      <3>6 QED
         BY <3>1, <3>2, <3>3, <3>4, <3>5
-    <2>7. QED
+    <2>7 QED
       BY <2>1, <2>2, <2>3, <2>4, <2>5, <2>6 DEF Inv
   \* `Decided' and `Terminated' are marker pseudo-actions that do not assign to 
   \* any variables in `vars' and are only useful for bounded model checking. The
   \* efficacy of the specification clearly does not depend on their presence.
-  <1>3. CASE Decided \/ Terminated
+  <1>3 CASE Decided \/ Terminated
     BY <1>3, InvariantPreservedOnUnchanged DEF Decided, Terminated
-  <1>4. QED
+  <1>4 QED
     BY <1>1, <1>2, <1>3 DEF Answer, Next
 
 (*****************************************************************************)
@@ -1570,17 +1567,17 @@ LEMMA Inductive == Inv /\ Next => Inv'
 (*****************************************************************************)
 THEOREM Correctness == Spec => []Consistency  
   <1> USE DEF Spec, Consistency
-  <1>1. Init => Inv
+  <1>1 Init => Inv
     BY Initial
-  <1>2. Inv /\ [Next]_vars => Inv'
-    <2>1. CASE Next
+  <1>2 Inv /\ [Next]_vars => Inv'
+    <2>1 CASE Next
       BY Inductive, <2>1
-    <2>2. CASE UNCHANGED vars
+    <2>2 CASE UNCHANGED vars
       BY <2>2, InvariantPreservedOnUnchanged
-    <2>3. QED
+    <2>3 QED
       BY <2>1, <2>2
-  <1>3. Inv => Consistency
+  <1>3 Inv => Consistency
     BY Consistent DEF Inv
-  <1>4. QED
+  <1>4 QED
     BY <1>1, <1>2, <1>3, PTL
 ====

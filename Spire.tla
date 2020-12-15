@@ -1,6 +1,6 @@
 ---- MODULE Spire ----
 (*****************************************************************************)
-(* A TLA⁺ specification of the Spire consensus protocol.                     *)
+(* A TLA+ specification of the Spire consensus algorithm.                    *)
 (*****************************************************************************)
 EXTENDS Integers
 
@@ -154,9 +154,9 @@ Init ==
 
 (*****************************************************************************)
 (* The next-state relation specifying a proposer's actions, submitting an    *)
-(* offer on the basis of prior quorum-answers (if they exist), or an         *)
+(* offer on the basis of prior sets of quorum-answers (if they exist), or an *)
 (* initial (round-0) offer containing an arbitrarily chosen value if no      *)
-(* prior quorum-answer has been observed.                                    *)
+(* prior set of quorum-answers has been observed.                            *)
 (*                                                                           *)
 (* Offers are submitted by appending to the message history variable `msgs'  *)
 (* so any consenter may observe and answer any offer.                        *)
@@ -205,8 +205,9 @@ Answer(c) ==
 
 (*****************************************************************************)
 (* A special 'marker' state that signifies that a value has been chosen.     *)
-(* This is determined by an existence of a primed uniform quorum-answer,     *)
-(* i.e. where all answers are primed and bear an identical round number.     *)
+(* This is determined by the existence of a primed uniform set of            *)
+(* quorum-answers; i.e., where all answers are primed and bear an identical  *)
+(* round number.                                                             *)
 (*                                                                           *)
 (* This pseudo-action has no bearing on the operation of the algorithm; it   *)
 (* has been added to conveniently highlight that consensus has been reached  *)
@@ -300,8 +301,8 @@ MsgInv ==
                         \* this property 'value propagation'.
                         /\ m.primed =>
                             \* A round 1+ offer may be primed only if it comes
-                            \* as a result of a uniform quorum-answer in the
-                            \* preceding round. I.e. all consenters in some
+                            \* as a result of a uniform set of quorum-answers in the
+                            \* preceding round. I.e., all consenters in some
                             \* quorum have voted for the same value in the
                             \* same round, and that round immediately precedes
                             \* this offer. This directly implies value propagation
@@ -312,12 +313,12 @@ MsgInv ==
                                 /\  m.round = PickRound(A) + 1
                         /\ ~m.primed =>
                             \* A round 1+ offer may be unprimed only if there exists
-                            \* quorum-answer in the preceding round bearing a value
+                            \* set of quorum-answers in the preceding round bearing a value
                             \* that has been offered.
                             \*
                             \* The `Offer' next-state permission permits an unprimed
                             \* offer to originate from a current-round answer, if the
-                            \* quorum-answer chosen by a proposer spans multiple rounds.
+                            \* quorum-answers chosen by a proposer span multiple rounds.
                             \* This may initially appear to be more relaxed than the
                             \* inductive invariant. We could have commensurately 
                             \* relaxed the inductive invariant, which would then require

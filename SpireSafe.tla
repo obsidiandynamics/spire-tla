@@ -49,7 +49,8 @@ ISpec == Inv /\ [][Next]_vars
 (* Lamport's 2018 paper 'Using TLC to Check Inductive Invariance'.           *)                                
 (*****************************************************************************)
 CArg == 10000000    \* upper bound on `|msgs|'
-PArg == 2           \* `PArg / |Messages|' is probability of including an element of `Messages' in a subset
+PArg == 2           \* `PArg / |Messages|' is the probability of including an element 
+                    \* of `Messages' in a subset
 
 (*****************************************************************************)
 (* Prevents integer overflow when computing an answer to `2^p' by capping    *)
