@@ -19,8 +19,8 @@ sim:
 
 multicheck:
 	java -cp ${tools_path} \
-	-XX:+UseParallelGC tlc2.TLC SPX.tla -workers ${workers} \
-	-tool -modelcheck -config SPX.cfg
+	-XX:+UseParallelGC tlc2.TLC SPSafe.tla -workers ${workers} \
+	-tool -modelcheck -config SPSafe.cfg
 
 soak: FORCE
 	SOAK_CMD="make check workers=${workers}" SOAK_GITPULL=false ./soak.sh
@@ -30,5 +30,10 @@ pdf:
 	TOOLS_PATH=${tools_path} ./makepdf.sh SpireSafe
 	TOOLS_PATH=${tools_path} ./makepdf.sh SpireLive
 	TOOLS_PATH=${tools_path} ./makepdf.sh SpireTlaps
+	TOOLS_PATH=${tools_path} ./makepdf.sh SP
+	TOOLS_PATH=${tools_path} ./makepdf.sh SPSafe
+
+clean:
+	rm *.dot *.out *.aux *.dot *.dvi *.log *.old *.out *.pdf *.ps *.tx
 
 FORCE:

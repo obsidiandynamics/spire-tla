@@ -1,4 +1,4 @@
----- MODULE SPXgamma ----
+---- MODULE SP ----
 (*****************************************************************************)
 (* A TLA⁺ specification of the Spanning Privilege composition of a sequence  *)
 (* of discrete single-value consensus instances to realise a                 *)
@@ -35,26 +35,17 @@ VARIABLES
                     \* used for abstractly modelling single-value consensus
     committed,      \* `committed[s]' is the committed value for slot `s',
                     \* used for abstractly modelling single-value consensus
-    epoch,          \* `epoch[p]' is the current epoch number of `p'
+    theta,          \* `theta[p]' is the current theta number of `p'
     lastProposed,   \* `lastProposed[p]' is the highest slot that `p' proposed in
     lastChosen      \* `lastChosen[p]' is the highest slot in which a marked 
                     \* proposal by `p' was chosen in
 
-vars == <<proposals, committed, epoch, lastProposed, lastChosen>>
+vars == <<proposals, committed, theta, lastProposed, lastChosen>>
 
 Slots == Nat        \* override with a finite set when model checking
-Epochs == Nat       \* override with a finite set when model checking
+Thetas == Nat       \* override with a finite set when model checking
 
-\* A finite set of slots, required for bounded model checking.
-FiniteSlots == 1..4
-
-\* A finite set of epochs, required for bounded model checking.
-FiniteEpochs == 1..2
-
-\* Model symmetry across proposers and commands.
-Symmetry == Permutations(Proposers) \union Permutations(Commands)
-
-Values == Commands \X (Proposers \union {Nil}) \X (Epochs \union {Nil})
+Values == Commands \X (Proposers \union {Nil}) \X (Thetas \union {Nil})
 Proposals == [val: Values, priv: BOOLEAN]
 
 ValidProposals == 
@@ -63,7 +54,7 @@ ValidProposals ==
 ValidCommitted ==
     /\  DOMAIN committed \in SUBSET Slots
     /\  \A s \in DOMAIN committed : committed[s] \in Values
-ValidEpoch == epoch \in [Proposers -> Epochs]
+ValidTheta == theta \in [Proposers -> Thetas]
 ValidLastProposed == 
     /\  DOMAIN lastProposed \in SUBSET Proposers
     /\  \A s \in DOMAIN lastProposed : lastProposed[s] \in Slots
@@ -75,7 +66,7 @@ ValidLastChosen ==
 (* The complete type-correctness invariant.                                  *)
 (*****************************************************************************)  
 TypeOK ==
-    /\  ValidProposals /\ ValidCommitted /\ ValidEpoch
+    /\  ValidProposals /\ ValidCommitted /\ ValidTheta
     /\  ValidLastProposed /\ ValidLastChosen
 
 (*****************************************************************************)
@@ -136,7 +127,7 @@ Consensus(s) ==
     /\  s \notin DOMAIN committed
     /\  LET chosen == CHOOSE p \in proposals[s] : TRUE
         IN  committed' = committed @@ s :> chosen.val
-    /\  UNCHANGED <<epoch, lastProposed, lastChosen, proposals>>
+    /\  UNCHANGED <<theta, lastProposed, lastChosen, proposals>>
 ----
 (*****************************************************************************)
 (* Invariants.                                                               *)
@@ -210,18 +201,18 @@ SetLastChosen(s, p) ==
 
 (*****************************************************************************)
 (* Checks that all of the given `slots' have been committed, and are either  *)
-(* unmarked or marked with the given `p' PID and `e' epoch number.           *)
+(* unmarked or marked with the given `ρ' and `θ'.                            *)
 (*****************************************************************************)
-AreNeutralOrMarked(slots, p, e) ==
+AreNeutralOrMarked(slots, _rho, _theta) ==
     \A s \in slots : 
         /\  s \in DOMAIN committed 
         /\  \/  committed[s][2] = Nil
-            \/  committed[s][2] = p /\ committed[s][3] = e
+            \/  committed[s][2] = _rho /\ committed[s][3] = _theta
 
 (*****************************************************************************)
 (* Proposer `p' attempts to elevate its status to privileged by committing   *)
 (* `Γ' entries ahead of the most recent privileged proposer,                 *)
-(* with the last of those entries marked with `p''s PID and epoch.           *)
+(* with the last of those entries marked with `p''s `ρ' and `θ'              *)
 (*                                                                           *)
 (* Ordinarily, `p' will prefer to forward a command to a privileged          *)
 (* proposer. However, it might not be aware of one.                          *)
@@ -252,16 +243,16 @@ AreNeutralOrMarked(slots, p, e) ==
 (* wishes to proactively elevate its status, even in the absence of          *)
 (* steady command traffic from its clients.                                  *)
 (* The first `Γ - 1' entries must be unmarked. The `Γ'th entry               *)
-(* is marked with `p''s PID and epoch. Prior to committing the `Γ'th entry,  *)
+(* is marked with `p''s `ρ' and `θ'. Prior to committing the `Γ'th entry,    *)
 (* `p' must ascertain that the preceding `Γ - 1' entries have been chosen    *)
 (* and are unmarked. If some other proposer commits a marked entry,          *)
 (* `p' must either accept the new privileged proposer or restart its count.  *)      
 (* Proposing a marked entry does not imply that                              *)
 (* `p' will succeed; `p' must ascertain that its command (and not some       *)
 (* other proposer's) was committed to the last slot.                         *)
-(* This is done by checking that the PID and epoch numbers match. Generally  *)
+(* This is done by checking that the `ρ' and `θ' match. Generally            *)
 (* speaking, any proposer that has committed a marked entry in slot `s' is   *)
-(* implicitly granted commit privileges over slots `(s + 1)..(s + Γ)'.       *)
+(* implicitly granted privileges over slots `(s + 1)..(s + Γ)'.              *)
 (*****************************************************************************)
 PromoteSelf(p) ==
     /\  p \notin DOMAIN lastChosen
@@ -269,12 +260,12 @@ PromoteSelf(p) ==
             nextVacant == IF highestProposed # 0 THEN highestProposed ELSE HighestCommitted + 1
         IN  \E s \in 1..nextVacant, c \in Commands : \*TODO
                 /\  s \in Slots
-                /\  IF AreNeutralOrMarked(Max(1, s - Gamma + 1)..(s - 1), p, epoch[p]) THEN
-                        TrySubmitProposal(s, <<c, p, epoch[p]>>, FALSE)
+                /\  IF AreNeutralOrMarked(Max(1, s - Gamma + 1)..(s - 1), p, theta[p]) THEN
+                        TrySubmitProposal(s, <<c, p, theta[p]>>, FALSE)
                     ELSE
                         TrySubmitProposal(s, <<c, Nil, Nil>>, FALSE)
                 /\  SetLastProposed(s, p)
-    /\  UNCHANGED <<committed, epoch, lastChosen>>
+    /\  UNCHANGED <<committed, theta, lastChosen>>
 
 (*****************************************************************************)
 (* If a proposer `p' has been forwarded a command from its peer, it should   *)
@@ -322,9 +313,9 @@ ProposePrivileged(p) ==
             LET nextSlot == lastProposed[p] + 1
             IN  /\  nextSlot \in Slots
                 /\  nextSlot <= lastChosen[p] + Gamma
-                /\  TrySubmitProposal(nextSlot, <<command, p, epoch[p]>>, TRUE)
+                /\  TrySubmitProposal(nextSlot, <<command, p, theta[p]>>, TRUE)
                 /\  SetLastProposed(nextSlot, p)
-    /\  UNCHANGED <<committed, epoch, lastChosen>>
+    /\  UNCHANGED <<committed, theta, lastChosen>>
 
 (*****************************************************************************)
 (* Verifies that `p''s value proposed in slot `lastProposed[p]' or any of    *)
@@ -340,7 +331,7 @@ ProposePrivileged(p) ==
 (* A practical implementation should also consider the case where some other *)
 (* proposer supersedes `p' by committing a marked value. The                 *)
 (* implementation may simply reset `p' — yielding its status and             *)
-(* incrementing the epoch. The specification disregards this case because    *)
+(* incrementing the theta. The specification disregards this case because    *)
 (* the next-state action `Reset(p)' already covers this indirectly.          *)
 (*****************************************************************************)
 VerifyChosenProposal(p) ==
@@ -351,9 +342,9 @@ VerifyChosenProposal(p) ==
             /\  \E s \in Max(lastLearned + 1, lastSlot - Gamma + 1)..lastSlot :
                     /\  s \in DOMAIN committed
                     /\  committed[s][2] = p
-                    /\  committed[s][3] = epoch[p]
+                    /\  committed[s][3] = theta[p]
                     /\  SetLastChosen(s, p)
-    /\  UNCHANGED <<proposals, committed, epoch, lastProposed>>
+    /\  UNCHANGED <<proposals, committed, theta, lastProposed>>
 
 (*****************************************************************************)
 (* Resets proposer `p', wiping any transient variables — thereby simulating  *)
@@ -364,18 +355,18 @@ VerifyChosenProposal(p) ==
 (* should voluntarily yield its status — an equivalent of a reset.           *)
 (*                                                                           *)
 (* Upon restart, the `p' will disregard any prior privileged status. Its     *)
-(* epoch will be incremented, so that any privilege status acquired within   *)
-(* the new epoch will be distinct from the previous. This ensures that a     *)
+(* theta will be incremented, so that any privilege status acquired within   *)
+(* the new theta will be distinct from the previous. This ensures that a     *)
 (* proposer never uses its slot-privilege twice.                             *)
 (*****************************************************************************)
 Reset(p) ==
     \* Only reset a proposer if it might be privileged. Resetting a non-privileged
-    \* proposer would have no effect, other than to increment its epoch.
+    \* proposer would have no effect, other than to increment its theta.
     /\  p \in DOMAIN lastProposed
-    /\  epoch[p] + 1 \in Epochs
+    /\  theta[p] + 1 \in Thetas
     /\  lastProposed' = [d \in DOMAIN lastProposed \ {p} |-> lastProposed[d]]
     /\  lastChosen' = [d \in DOMAIN lastChosen \ {p} |-> lastChosen[d]]
-    /\  epoch' = [epoch EXCEPT ![p] = @ + 1]
+    /\  theta' = [theta EXCEPT ![p] = @ + 1]
     /\  UNCHANGED <<proposals, committed>>
 ----
 (*****************************************************************************)
@@ -384,7 +375,7 @@ Reset(p) ==
 Init ==
     /\  proposals = <<>>
     /\  committed = <<>>
-    /\  epoch = [p \in Proposers |-> 1]
+    /\  theta = [p \in Proposers |-> 1]
     /\  lastProposed = <<>>
     /\  lastChosen = <<>>
 
