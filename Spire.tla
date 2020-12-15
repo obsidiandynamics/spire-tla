@@ -81,7 +81,7 @@ MaxLastRound(M) ==
 (* Whether all answers in `M' feature identical round numbers.               *)
 (*****************************************************************************)
 AllIdenticalRounds(M) == 
-    /\  ~\E m1, m2 \in M : m1.lastRound # m2.lastRound
+    ~\E m1, m2 \in M : m1.lastRound # m2.lastRound
 
 (*****************************************************************************)
 (* Whether all answers in `M' encompass the same value.                      *)
@@ -93,7 +93,7 @@ AllIdenticalValues(M) ==
 (* Whether all answers in `M' are primed.                                    *)
 (*****************************************************************************)
 AllPrimed(M) == 
-    /\  \A m \in M : m.lastPrimed
+    \A m \in M : m.lastPrimed
 
 (*****************************************************************************)
 (* Selects an arbitrary value from the answers in `M'. It is assumed that    *)
