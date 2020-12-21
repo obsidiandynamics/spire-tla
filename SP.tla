@@ -29,7 +29,7 @@ CONSTANTS
     Gamma,          \* `Gamma' is the number of slots that a proposer has privilege
                     \* over. For a slot `s' marked by proposer `p', `p' has
                     \* implicit privilege over slots `(s + 1)..(s + Gamma)'.
-    Nil
+    Null
 
 VARIABLES
     proposals,      \* `proposals[s]' is a set of pending proposals for slot `s',
@@ -46,7 +46,7 @@ vars == <<proposals, committed, theta, lastProposed, lastChosen>>
 Slots == Nat        \* override with a finite set when model checking
 Thetas == Nat       \* override with a finite set when model checking
 
-Values == Commands \X (Proposers \union {Nil}) \X (Thetas \union {Nil})
+Values == Commands \X (Proposers \union {Null}) \X (Thetas \union {Null})
 Proposals == [val: Values, priv: BOOLEAN]
 
 ValidProposals == 
@@ -140,10 +140,10 @@ Consensus(s) ==
 (*****************************************************************************)
 PrivilegedProposerSeparation ==
     \A s \in Slots :
-        s \in DOMAIN committed /\ committed[s][2] # Nil 
+        s \in DOMAIN committed /\ committed[s][2] # Null 
             => \A t \in Max(1, s - Gamma + 1)..(s - 1) :
                     \/  t \notin DOMAIN committed
-                    \/  committed[t][2] = Nil
+                    \/  committed[t][2] = Null
                     \/  committed[t][2] = committed[s][2] /\ committed[t][3] = committed[s][3]
 
 (*****************************************************************************)
@@ -205,7 +205,7 @@ SetLastChosen(s, p) == SetLast(s, p, lastChosen)
 AreNeutralOrMarked(slots, _rho, _theta) ==
     \A s \in slots : 
         /\  s \in DOMAIN committed 
-        /\  \/  committed[s][2] = Nil
+        /\  \/  committed[s][2] = Null
             \/  committed[s][2] = _rho /\ committed[s][3] = _theta
 
 (*****************************************************************************)
@@ -260,7 +260,7 @@ PromoteSelf(q) ==
                 /\  IF AreNeutralOrMarked(Max(1, s - Gamma + 1)..(s - 1), q, theta[q]) THEN
                         TrySubmitProposal(s, <<c, q, theta[q]>>, FALSE)
                     ELSE
-                        TrySubmitProposal(s, <<c, Nil, Nil>>, FALSE)
+                        TrySubmitProposal(s, <<c, Null, Null>>, FALSE)
                 /\  SetLastProposed(s, q)
     /\  UNCHANGED <<committed, theta, lastChosen>>
 
