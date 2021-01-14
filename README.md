@@ -1,6 +1,6 @@
 `spire-tla`
 ===
-TLA⁺ specifications of the **Spire** single-value consensus algorithm and the **Spanning Privilege** multi-value consensus algorithm.
+TLA⁺ specifications of the **Spire** single-value consensus algorithm and the **Spanning Privilege** (SP) multi-value consensus algorithm. A pre-print of Spire and SP is available on IEEE's [TechRxiv](https://www.techrxiv.org/articles/preprint/Spire_A_Cooperative_Phase-Symmetric_Solution_to_Distributed_Consensus/13531136).
 
 ## Modules
 |Module                |Description                          |
